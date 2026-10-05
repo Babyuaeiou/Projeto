@@ -10,11 +10,13 @@ time =pygame.time.Clock()
 x = 100
 y = 100
 velocidade = 5
-#colisão
-parede_x = 800
-parede_y = 600
+#colisão/jogador
+parede_x = 300
+parede_y = 200
 parede_largura = 100
 parede_altura = 50
+
+jogador =pygame.Rect(x - 25,y - 25,50,50)
 #loop 
 rodando = True
 while rodando:
@@ -37,7 +39,10 @@ while rodando:
         y -= velocidade
     tela.fill(AMARELO_CLARO)
     pygame.draw.circle(tela, VERMELHO, (x,y),25)
-    parede = pygame.Rect(parede_x,parede_y, parede_altura, parede_largura)
+    parede = pygame.Rect(parede_x,parede_y, parede_largura, parede_altura)
+    pygame.draw.rect(tela,PRETO,parede)
+    if jogador.colliderect(parede):
+        print('COLIDIU')
     pygame.display.flip()
     tempo = time.tick(60) / 1000
 pygame.quit()
