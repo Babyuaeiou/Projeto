@@ -24,6 +24,11 @@ y = 100
 velocidade = 5
 tamanho_jogador = 25
 
+imagem_jogador = pygame.image.load('frame_70000.png').convert_alpha()
+imagem_jogador = pygame.transform.scale(
+    imagem_jogador,
+    (tamanho_jogador * 2, tamanho_jogador * 2)
+)
 
 # =========================
 # PAREDE
@@ -65,7 +70,7 @@ while rodando:
 
         jogador.x = x - tamanho_jogador
 
-        if jogador.colliderecta(parede):
+        if jogador.colliderect(parede):
             x -= velocidade
     #esquerda
     if teclas[pygame.K_a]:
@@ -119,11 +124,9 @@ while rodando:
     tela.fill(AmareloClaro)
 
     # Jogador
-    pygame.draw.circle(
-        tela,
-        Vermelho,
-        (x, y),
-        tamanho_jogador
+    tela.blit(
+        imagem_jogador,
+        (x - 25, y - 25)
     )
 
     # Parede
