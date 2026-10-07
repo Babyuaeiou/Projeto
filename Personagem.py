@@ -3,7 +3,7 @@ import pygame
 
 
 class Personagem:
-    def __init__(self, nome):
+    def __init__(self, nome, nome_sprite, quantidade_sprites):
         self.inventario = {}
         self.nome = nome
         self.cooldown = 1
@@ -17,21 +17,33 @@ class Personagem:
         self.x = 100
         self.y = 100
         self.velocidade_movimento = 5
+        self.andando = False
 
         # Sprites
-        self.sprite_base = None
+        self.nome_sprite = nome_sprite
+        self.quantidade_sprites = quantidade_sprites
+
+        # Sprite parado
+        self.sprite_base = pygame.image.load(
+            f"{self.nome_sprite}.png"
+        ).convert_alpha()
+
+        # Sprites andando
         self.sprites_andando = []
-        self.sprite_atual = None
+
+        for i in range(1, self.quantidade_sprites + 1):
+            sprite = pygame.image.load(
+                f"{self.nome_sprite}-{i}.png"
+            ).convert_alpha()
+
+            self.sprites_andando.append(sprite)
+
+        self.sprite_atual = self.sprite_base
 
         # Animação
         self.frame_atual = 0
         self.tempo_animacao = 0
         self.velocidade_animacao = 100
-        self.andando = False
-
-    # ==========================================================
-    # COMBATE
-    # ==========================================================
 
     def esta_pronto(self, tempo):
         if self.restante > 0:
@@ -52,10 +64,6 @@ class Personagem:
 
         return dano
 
-    # ==========================================================
-    # MOVIMENTO
-    # ==========================================================
-
     def movimentar(self, teclas):
         self.andando = False
 
@@ -75,13 +83,9 @@ class Personagem:
             self.x += self.velocidade_movimento
             self.andando = True
 
-    # ==========================================================
-    # ANIMAÇÃO
-    # ==========================================================
-
     def atualizar_animacao(self, tempo):
+        # Parado
         if not self.andando:
-            # Parado
             self.frame_atual = 0
             self.tempo_animacao = 0
             self.sprite_atual = self.sprite_base
@@ -102,17 +106,9 @@ class Personagem:
                 self.frame_atual
             ]
 
-    # ==========================================================
-    # ATUALIZAR
-    # ==========================================================
-
     def atualizar(self, teclas, tempo):
         self.movimentar(teclas)
         self.atualizar_animacao(tempo)
-
-    # ==========================================================
-    # DESENHAR
-    # ==========================================================
 
     def desenhar(self, tela):
         tela.blit(
