@@ -22,29 +22,21 @@ clock = pygame.time.Clock()
 # JOGADOR
 # =========================
 
-x = 100
-y = 100
-
-velocidade = 5
-tamanho_jogador = 25
-
-# =========================
-# RETÂNGULO DO JOGADOR
-# =========================
-
-jogador = pygame.Rect(
-    x - tamanho_jogador,
-    y - tamanho_jogador,
-    tamanho_jogador * 2,
-    tamanho_jogador * 2
+jogador = Personagem(
+    "Jogador",
+    "jogador",
+    4
 )
 
 # Carrega a posição salva
 posicao = carregar_posicao()
 
 if posicao:
-    jogador.x = posicao[0] - tamanho_jogador
-    jogador.y = posicao[1] - tamanho_jogador
+    jogador.x = posicao[0]
+    jogador.y = posicao[1]
+
+    jogador.colisao.x = jogador.x
+    jogador.colisao.y = jogador.y
 
 
 # =========================
@@ -66,6 +58,15 @@ parede = pygame.Rect(
 
 
 # =========================
+# OBJETOS COM COLISÃO
+# =========================
+
+objetos_colisao = [
+    parede
+]
+
+
+# =========================
 # LOOP PRINCIPAL
 # =========================
 
@@ -83,15 +84,24 @@ while rodando:
 
             # Salva a posição antes de fechar
             salvar_posicao(
-                jogador.x + tamanho_jogador,
-                jogador.y + tamanho_jogador
+                jogador.x,
+                jogador.y
             )
 
             rodando = False
 
-    else:
-        frame_atual = 0
-        andando = 0
+
+    # =========================
+    # MOVIMENTO
+    # =========================
+
+    teclas = pygame.key.get_pressed()
+
+    jogador.atualizar(
+        teclas,
+        clock.get_time(),
+        objetos_colisao
+    )
 
 
     # =========================
@@ -106,6 +116,9 @@ while rodando:
         PRETO,
         parede
     )
+
+    # Jogador
+    jogador.desenhar(tela)
 
 
     # =========================
@@ -122,3 +135,34 @@ while rodando:
 # =========================
 
 pygame.quit()
+O que foi mantido do seu código
+criar_banco()
+salvar_posicao()
+carregar_posicao()
+Carregamento da posição ao iniciar
+Salvamento ao fechar
+Sua parede
+Sua resolução 800x600
+Seu clock
+Suas cores
+Sua estrutura de comentários
+O que foi acrescentado
+O jogador agora é:
+
+jogador = Personagem(
+    "Jogador",
+    "jogador",
+    4
+)
+E a parede é passada para o sistema de colisão:
+
+objetos_colisao = [
+    parede
+]
+Depois:
+
+jogador.atualizar(
+    teclas,
+    clock.get_time(),
+    objetos_colisao
+)
