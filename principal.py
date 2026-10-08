@@ -1,6 +1,7 @@
 import pygame
 from cores import *
 from personagem import *
+from banco import criar_banco, salvar_posicao, carregar_posicao
 
 
 # =========================
@@ -8,6 +9,8 @@ from personagem import *
 # =========================
 
 pygame.init()
+
+criar_banco()
 
 tela = pygame.display.set_mode((800, 600))
 pygame.display.set_caption("Sem nome")
@@ -35,6 +38,13 @@ jogador = pygame.Rect(
     tamanho_jogador * 2,
     tamanho_jogador * 2
 )
+
+# Carrega a posição salva
+posicao = carregar_posicao()
+
+if posicao:
+    jogador.x = posicao[0] - tamanho_jogador
+    jogador.y = posicao[1] - tamanho_jogador
 
 
 # =========================
@@ -70,6 +80,13 @@ while rodando:
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
+
+            # Salva a posição antes de fechar
+            salvar_posicao(
+                jogador.x + tamanho_jogador,
+                jogador.y + tamanho_jogador
+            )
+
             rodando = False
 
     else:
@@ -105,4 +122,3 @@ while rodando:
 # =========================
 
 pygame.quit()
-
