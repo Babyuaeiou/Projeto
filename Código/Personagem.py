@@ -1,7 +1,4 @@
-from random import randint
 import pygame
-
-
 class Personagem:
     def __init__(self, nome, nome_sprite, quantidade_sprites):
         self.inventario = {}
@@ -18,6 +15,14 @@ class Personagem:
         self.y = 100
         self.velocidade_movimento = 5
         self.andando = False
+
+        # Caixa de colisão
+        self.colisao = pygame.Rect(
+            self.x,
+            self.y,
+            50,
+            50
+        )
 
         # Sprites
         self.nome_sprite = nome_sprite
@@ -58,29 +63,56 @@ class Personagem:
         dano_equipamento = 0
 
         ataquetotal = self.dano + dano_equipamento
+
         dano = ataquetotal * (
             ataquetotal / (ataquetotal + alvo.defesa)
         )
 
         return dano
 
-    def movimentar(self, teclas):
+    def movimentar(self, teclas, objetos_colisao):
         self.andando = False
 
-        if teclas[pygame.K_w]:
-            self.y -= self.velocidade_movimento
-            self.andando = True
-
-        if teclas[pygame.K_s]:
-            self.y += self.velocidade_movimento
-            self.andando = True
-
+        # Movimento horizontal
         if teclas[pygame.K_a]:
-            self.x -= self.velocidade_movimento
+            self.colisao.x -= self.velocidade_movimento
+
+            if self.colisao.collidelist(objetos_colisao) != -1:
+                self.colisao.x += self.velocidade_movimento
+            else:
+                self.x -= self.velocidade_movimento
+
             self.andando = True
 
         if teclas[pygame.K_d]:
-            self.x += self.velocidade_movimento
+            self.colisao.x += self.velocidade_movimento
+
+            if self.colisao.collidelist(objetos_colisao) != -1:
+                self.colisao.x -= self.velocidade_movimento
+            else:
+                self.x += self.velocidade_movimento
+
+            self.andando = True
+
+        # Movimento vertical
+        if teclas[pygame.K_w]:
+            self.colisao.y -= self.velocidade_movimento
+
+            if self.colisao.collidelist(objetos_colisao) != -1:
+                self.colisao.y += self.velocidade_movimento
+            else:
+                self.y -= self.velocidade_movimento
+
+            self.andando = True
+
+        if teclas[pygame.K_s]:
+            self.colisao.y += self.velocidade_movimento
+
+            if self.colisao.collidelist(objetos_colisao) != -1:
+                self.colisao.y -= self.velocidade_movimento
+            else:
+                self.y += self.velocidade_movimento
+
             self.andando = True
 
     def atualizar_animacao(self, tempo):
@@ -106,8 +138,12 @@ class Personagem:
                 self.frame_atual
             ]
 
-    def atualizar(self, teclas, tempo):
-        self.movimentar(teclas)
+    def atualizar(self, teclas, tempo, objetos_colisao):
+        self.movimentar(
+            teclas,
+            objetos_colisao
+        )
+
         self.atualizar_animacao(tempo)
 
     def desenhar(self, tela):
