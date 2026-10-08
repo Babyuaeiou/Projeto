@@ -1,6 +1,6 @@
 import pygame
 from cores import *
-from personagem import *
+from personagem import  Personagem
 from banco import criar_banco, salvar_posicao, carregar_posicao
 
 
@@ -24,8 +24,8 @@ clock = pygame.time.Clock()
 
 jogador = Personagem(
     "Jogador",
-    "jogador",
-    4
+    "frame_70000",
+    6
 )
 
 # Carrega a posição salva
@@ -108,12 +108,12 @@ while rodando:
     # DESENHO
     # =========================
 
-    tela.fill(AMARELO)
+    tela.fill(Amarelo)
 
     # Parede
     pygame.draw.rect(
         tela,
-        PRETO,
+        Preto,
         parede
     )
 
@@ -135,34 +135,3 @@ while rodando:
 # =========================
 
 pygame.quit()
-O que foi mantido do seu código
-criar_banco()
-salvar_posicao()
-carregar_posicao()
-Carregamento da posição ao iniciar
-Salvamento ao fechar
-Sua parede
-Sua resolução 800x600
-Seu clock
-Suas cores
-Sua estrutura de comentários
-O que foi acrescentado
-O jogador agora é:
-
-jogador = Personagem(
-    "Jogador",
-    "jogador",
-    4
-)
-E a parede é passada para o sistema de colisão:
-
-objetos_colisao = [
-    parede
-]
-Depois:
-
-jogador.atualizar(
-    teclas,
-    clock.get_time(),
-    objetos_colisao
-)
