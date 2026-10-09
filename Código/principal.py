@@ -1,13 +1,13 @@
-
 import pygame
 
 from cores import *
-from Personagem import Personagem
+from personagem import Personagem
 from banco import (
     criar_banco,
+    salvar_posicao,
+    carregar_posicao,
     salvar_partida,
     carregar_partida,
-    carregar_posicao,
 )
 from inventario import Inventario
 
@@ -26,6 +26,8 @@ tela = pygame.display.set_mode(
 )
 
 pygame.display.set_caption("Sem nome")
+
+fonte = pygame.font.SysFont(None, 24)
 
 clock = pygame.time.Clock()
 
@@ -55,13 +57,14 @@ jogador = Personagem(
     6
 )
 
-# Compatibilidade com o salvamento antigo de posição.
+# Carrega a posição salva pelo sistema antigo.
 posicao = carregar_posicao()
 
 if posicao is not None:
     jogador.x = posicao[0]
     jogador.y = posicao[1]
 
+# Sincroniza a caixa de colisão com a posição do jogador.
 jogador.colisao.topleft = (
     round(jogador.x),
     round(jogador.y),
@@ -92,7 +95,7 @@ objetos_colisao = [
 
 
 # =========================================================
-# RESTAURAR PARTIDA
+# RESTAURAR PARTIDA SALVA
 # =========================================================
 
 dados_salvos = carregar_partida(
@@ -102,9 +105,10 @@ dados_salvos = carregar_partida(
 )
 
 if dados_salvos is not None:
+
     mapa_atual = dados_salvos["mapa_atual"]
 
-    # Reconstrói as colisões salvas no banco.
+    # Reconstrói as colisões salvas no banco de dados.
     objetos_colisao = [
         pygame.Rect(
             round(colisao["x"]),
@@ -121,11 +125,13 @@ if dados_salvos is not None:
 # =========================================================
 
 INTERVALO_SALVAMENTO = 10000
+
 tempo_desde_salvamento = 0
 
 
 def salvar_jogo():
     """Salva o estado atual completo da partida."""
+
     salvar_partida(
         jogador,
         inventario,
@@ -133,22 +139,35 @@ def salvar_jogo():
         mapa_atual,
     )
 
+    # Mantém também a posição no sistema antigo.
+    salvar_posicao(
+        jogador.x,
+        jogador.y,
+    )
+
 
 # =========================================================
 # LOOP PRINCIPAL
 # =========================================================
 
+mostrar_cordenadas = False
+
 rodando = True
 
 while rodando:
+
+    # -----------------------------------------------------
+    # TEMPO E SALVAMENTO AUTOMÁTICO
+    # -----------------------------------------------------
 
     tempo = clock.tick(60)
 
     tempo_desde_salvamento += tempo
 
-    # Salva a partida a cada 10 segundos.
     if tempo_desde_salvamento >= INTERVALO_SALVAMENTO:
+
         salvar_jogo()
+
         tempo_desde_salvamento = 0
 
     # -----------------------------------------------------
@@ -158,8 +177,17 @@ while rodando:
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
+
             salvar_jogo()
+
             rodando = False
+
+        elif event.type == pygame.KEYDOWN:
+
+            if event.key == pygame.K_c:
+                mostrar_cordenadas = not mostrar_cordenadas
+
+            inventario.tratar_evento(event)
 
         else:
             inventario.tratar_evento(event)
@@ -174,6 +202,7 @@ while rodando:
     teclas = pygame.key.get_pressed()
 
     if not inventario.aberto:
+
         jogador.atualizar(
             teclas,
             tempo,
@@ -183,14 +212,17 @@ while rodando:
         )
 
     else:
+
         jogador.andando = False
+
         jogador.atualizar_animacao(tempo)
 
     # -----------------------------------------------------
-    # CÂMERA
+    # ATUALIZAÇÃO DA CÂMERA
     # -----------------------------------------------------
 
     camera_x = jogador.x - LARGURA_TELA // 2
+
     camera_y = jogador.y - ALTURA_TELA // 2
 
     # -----------------------------------------------------
@@ -199,8 +231,9 @@ while rodando:
 
     tela.fill(AmareloClaro)
 
-    # Desenha todas as paredes e colisões.
+    # Desenha todas as paredes e objetos com colisão.
     for objeto in objetos_colisao:
+
         pygame.draw.rect(
             tela,
             Preto,
@@ -212,11 +245,29 @@ while rodando:
             ),
         )
 
+    # Desenha o jogador.
     jogador.desenhar(
         tela,
         camera_x,
         camera_y,
     )
+
+    # -----------------------------------------------------
+    # COORDENADAS DO JOGADOR
+    # -----------------------------------------------------
+
+    if mostrar_cordenadas:
+
+        texto = fonte.render(
+            f"X: {round(jogador.x)} | Y: {round(jogador.y)}",
+            True,
+            Verde,
+        )
+
+        tela.blit(
+            texto,
+            (10, 10),
+        )
 
     # -----------------------------------------------------
     # INVENTÁRIO
@@ -235,4 +286,8 @@ while rodando:
 # FINALIZAÇÃO
 # =========================================================
 
+# Garante que a partida seja salva ao sair.
+salvar_jogo()
+
 pygame.quit()
+
