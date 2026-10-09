@@ -1,25 +1,34 @@
+
 import pygame
+
 from cores import *
-from personagem import Personagem
+from Personagem import Personagem
 from banco import criar_banco, salvar_posicao, carregar_posicao
+from inventario import Inventario
 
 
 # =========================
-# INICIALIZAÇÃO
+# INICIALIZACAO
 # =========================
 
 pygame.init()
 
-criar_banco()
+LARGURA_TELA = 800
+ALTURA_TELA = 600
 
-tela = pygame.display.set_mode((800, 600))
+tela = pygame.display.set_mode(
+    (LARGURA_TELA, ALTURA_TELA)
+)
+
 pygame.display.set_caption("Sem nome")
 
 clock = pygame.time.Clock()
 
+criar_banco()
+
 
 # =========================
-# CAMERA
+# MAPA E CAMERA
 # =========================
 
 camera_x = 0
@@ -27,10 +36,6 @@ camera_y = 0
 
 mapa_largura = 30000
 mapa_altura = 20000
-
-mapa = pygame.Surface(
-    (mapa_largura, mapa_altura)
-)
 
 
 # =========================
@@ -43,37 +48,39 @@ jogador = Personagem(
     6
 )
 
-# Carrega a posição salva
 posicao = carregar_posicao()
 
 if posicao:
     jogador.x = posicao[0]
     jogador.y = posicao[1]
 
-# Sincroniza a caixa de colisão com o jogador
-jogador.colisao.topleft = (jogador.x, jogador.y)
+jogador.colisao.topleft = (
+    jogador.x,
+    jogador.y
+)
+
+
+# =========================
+# INVENTARIO
+# =========================
+
+inventario = Inventario()
 
 
 # =========================
 # PAREDE
 # =========================
 
-parede_x = 300
-parede_y = 200
-
-parede_largura = 100
-parede_altura = 100
-
 parede = pygame.Rect(
-    parede_x,
-    parede_y,
-    parede_largura,
-    parede_altura
+    300,
+    200,
+    100,
+    100
 )
 
 
 # =========================
-# OBJETOS COM COLISÃO
+# OBJETOS COM COLISAO
 # =========================
 
 objetos_colisao = [
@@ -89,6 +96,8 @@ rodando = True
 
 while rodando:
 
+    tempo = clock.tick(60)
+
     # =========================
     # EVENTOS
     # =========================
@@ -96,8 +105,6 @@ while rodando:
     for event in pygame.event.get():
 
         if event.type == pygame.QUIT:
-
-            # Salva a posição antes de fechar
             salvar_posicao(
                 jogador.x,
                 jogador.y
@@ -105,40 +112,45 @@ while rodando:
 
             rodando = False
 
+        else:
+            inventario.tratar_evento(event)
+
+    if not rodando:
+        break
 
     # =========================
-    # MOVIMENTO
+    # MOVIMENTO DO JOGADOR
     # =========================
 
     teclas = pygame.key.get_pressed()
 
-    jogador.atualizar(
-        teclas,
-        clock.get_time(),
-        objetos_colisao,
-        mapa_largura,
-        mapa_altura
-    )
+    if not inventario.aberto:
+        jogador.atualizar(
+            teclas,
+            tempo,
+            objetos_colisao,
+            mapa_largura,
+            mapa_altura
+        )
 
-
-    # ==========================
-    # ATUALIZAÇÃO DA CÂMERA
-    # ==========================
-
-    # A câmera acompanha o jogador em X e Y
-    # sem limitar as coordenadas a zero.
-
-    camera_x = jogador.x - 800 // 2
-    camera_y = jogador.y - 600 // 2
-
+    else:
+        # Mantem o jogador parado com o inventario aberto.
+        jogador.andando = False
+        jogador.atualizar_animacao(tempo)
 
     # =========================
-    # DESENHO
+    # CAMERA
+    # =========================
+
+    camera_x = jogador.x - LARGURA_TELA // 2
+    camera_y = jogador.y - ALTURA_TELA // 2
+
+    # =========================
+    # DESENHO DO MUNDO
     # =========================
 
     tela.fill(AmareloClaro)
 
-    # Parede
     pygame.draw.rect(
         tela,
         Preto,
@@ -150,25 +162,27 @@ while rodando:
         )
     )
 
-    # Jogador
     jogador.desenhar(
         tela,
         camera_x,
         camera_y
     )
 
+    # =========================
+    # INTERFACE DO INVENTARIO
+    # =========================
+
+    inventario.desenhar(tela)
 
     # =========================
-    # ATUALIZAÇÃO DA TELA
+    # ATUALIZACAO DA TELA
     # =========================
 
     pygame.display.flip()
 
-    clock.tick(60)
-
 
 # =========================
-# FINALIZAÇÃO
+# FINALIZACAO
 # =========================
 
 pygame.quit()
