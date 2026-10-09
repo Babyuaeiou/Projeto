@@ -1,0 +1,19 @@
+GDD - A Ira da Arara Brilhante
+1. Visão Geral e Enredo
+Título Provisório: A Ira da Arara Brilhante
+Premissa: Após uma batalha lendária, o Servo retorna ao castelo e encontra o Rei Demônio e o Herói caídos. O Rei Demônio deixa cair um artefato supremo. O Servo tenta pegá-lo para acumular poder, mas uma Arara Azul rouba o item por pura obsessão com coisas brilhantes.
+Incidente Incitante: O artefato concede poderes cósmicos à ave, transformando animais e objetos comuns em criaturas demoníacas por acidente. O Servo inicia uma jornada cômica e frenética até o topo da montanha para recuperar o item.
+Cutscene Inicial: Uma sequência scriptada em pixel art 32 bits mostrando a comédia pastelão do furto da arara bem na hora da glória do protagonista.
+2. Mecânicas de Jogo
+Gênero: Ação e plataforma 2D com progressão linear por fases.
+Movimentação: Sistema fluido de corrida, pulo duplo e esquiva rápida (dash).
+Combate: Ataques corpo a corpo com uma espada enferrujada, evoluindo conforme o Servo coleta fragmentos de poder deixados pela arara.
+Inimigos: Fauna e flora corrompidas (ex: pacatos esquilos que viram feras flamejantes e pedras com dentes afiados).
+3. Direção de Arte e Estilo
+Estilo Visual: Pixel art rica e detalhada de 32 bits, inspirada em clássicos da era 16/32-bit (como Castlevania: SotN misturado com cores vibrantes).
+Paleta de Cores: Contraste marcante entre os tons sombrios do castelo/montanha e as cores berrantes e brilhantes da Arara Azul.
+Cenários: Castelo do Rei Demônio, Floresta Tropical Mutante e a Montanha Congelada do Cativeiro.
+4. Escopo Técnico em Pygame
+Motor: Desenvolvido puramente em Python utilizando a biblioteca Pygame.
+Otimização: Uso de Sprite Groups e blitting otimizado para manter 60 FPS estáveis com múltiplos inimigos na tela.
+Áudio: Trilha sonora no estilo chiptune orquestrado, combinando temas épicos de chefes com sons cômicos de aves.
