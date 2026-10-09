@@ -1,293 +1,176 @@
 import pygame
 
-from cores import *
-from personagem import Personagem
-from banco import (
-    criar_banco,
-    salvar_posicao,
-    carregar_posicao,
-    salvar_partida,
-    carregar_partida,
-)
-from inventario import Inventario
 
+class Personagem:
+    def __init__(self, nome, nome_sprite, quantidade_sprites):
+        self.inventario = {}
+        self.nome = nome
+        self.cooldown = 1
+        self.restante = 0
+        self.hpmaximo, self.hp = 20, 20
+        self.dano, self.danototal = 5, 5
+        self.defesa, self.defesatotal = 3, 3
+        self.velocidade = 1
 
-# =========================================================
-# INICIALIZAÇÃO
-# =========================================================
+        # Movimento
+        self.x = 100
+        self.y = 100
+        self.velocidade_movimento = 5
+        self.andando = False
 
-pygame.init()
-
-LARGURA_TELA = 800
-ALTURA_TELA = 600
-
-tela = pygame.display.set_mode(
-    (LARGURA_TELA, ALTURA_TELA)
-)
-
-pygame.display.set_caption("Sem nome")
-
-fonte = pygame.font.SysFont(None, 24)
-
-clock = pygame.time.Clock()
-
-criar_banco()
-
-
-# =========================================================
-# MAPA E CÂMERA
-# =========================================================
-
-camera_x = 0
-camera_y = 0
-
-mapa_largura = 30000
-mapa_altura = 20000
-
-mapa_atual = "mapa_inicial"
-
-
-# =========================================================
-# JOGADOR
-# =========================================================
-
-jogador = Personagem(
-    "Jogador",
-    "frame_70000",
-    6
-)
-
-# Carrega a posição salva pelo sistema antigo.
-posicao = carregar_posicao()
-
-if posicao is not None:
-    jogador.x = posicao[0]
-    jogador.y = posicao[1]
-
-# Sincroniza a caixa de colisão com a posição do jogador.
-jogador.colisao.topleft = (
-    round(jogador.x),
-    round(jogador.y),
-)
-
-
-# =========================================================
-# INVENTÁRIO
-# =========================================================
-
-inventario = Inventario()
-
-
-# =========================================================
-# COLISÕES INICIAIS
-# =========================================================
-
-parede = pygame.Rect(
-    300,
-    200,
-    100,
-    100
-)
-
-objetos_colisao = [
-    parede
-]
-
-
-# =========================================================
-# RESTAURAR PARTIDA SALVA
-# =========================================================
-
-dados_salvos = carregar_partida(
-    jogador,
-    inventario,
-    mapa_atual,
-)
-
-if dados_salvos is not None:
-
-    mapa_atual = dados_salvos["mapa_atual"]
-
-    # Reconstrói as colisões salvas no banco de dados.
-    objetos_colisao = [
-        pygame.Rect(
-            round(colisao["x"]),
-            round(colisao["y"]),
-            round(colisao["largura"]),
-            round(colisao["altura"]),
+        # Caixa de colisão
+        self.colisao = pygame.Rect(
+            self.x,
+            self.y,
+            50,
+            50
         )
-        for colisao in dados_salvos["colisoes"]
-    ]
 
+        # Sprites
+        self.nome_sprite = nome_sprite
+        self.quantidade_sprites = quantidade_sprites
 
-# =========================================================
-# SALVAMENTO AUTOMÁTICO
-# =========================================================
+        # Sprite parado
+        self.sprite_base = pygame.image.load(
+            f"{self.nome_sprite}.png"
+        ).convert_alpha()
 
-INTERVALO_SALVAMENTO = 10000
+        # Sprites andando
+        self.sprites_andando = []
 
-tempo_desde_salvamento = 0
+        for i in range(1, self.quantidade_sprites + 1):
+            sprite = pygame.image.load(
+                f"{self.nome_sprite}-{i}.png"
+            ).convert_alpha()
 
+            self.sprites_andando.append(sprite)
 
-def salvar_jogo():
-    """Salva o estado atual completo da partida."""
+        self.sprite_atual = self.sprite_base
 
-    salvar_partida(
-        jogador,
-        inventario,
+        # Animação
+        self.frame_atual = 0
+        self.tempo_animacao = 0
+        self.velocidade_animacao = 100
+
+    def esta_pronto(self, tempo):
+        if self.restante > 0:
+            self.restante -= tempo
+            return False
+        return True
+
+    def reiniciar_cooldown(self):
+        self.restante = self.cooldown
+
+    def calcular_dano(self, alvo):
+        dano_equipamento = 0
+
+        ataquetotal = self.dano + dano_equipamento
+
+        dano = ataquetotal * (
+            ataquetotal / (ataquetotal + alvo.defesa)
+        )
+
+        return dano
+
+    def movimentar(
+        self,
+        teclas,
         objetos_colisao,
-        mapa_atual,
-    )
+        mapa_largura,
+        mapa_altura
+    ):
+        self.andando = False
 
-    # Mantém também a posição no sistema antigo.
-    salvar_posicao(
-        jogador.x,
-        jogador.y,
-    )
+        # Movimento horizontal
+        movimento_x = 0
 
+        if teclas[pygame.K_a]:
+            movimento_x = -self.velocidade_movimento
+        elif teclas[pygame.K_d]:
+            movimento_x = self.velocidade_movimento
 
-# =========================================================
-# LOOP PRINCIPAL
-# =========================================================
+        if movimento_x != 0:
+            nova_x = self.x + movimento_x
 
-mostrar_cordenadas = False
+            self.colisao.x = nova_x
 
-rodando = True
+            # Verifica colisões sem limitar a coordenada a zero
+            if self.colisao.collidelist(objetos_colisao) == -1:
+                self.x = nova_x
+            else:
+                self.colisao.x = self.x
 
-while rodando:
+            self.andando = True
 
-    # -----------------------------------------------------
-    # TEMPO E SALVAMENTO AUTOMÁTICO
-    # -----------------------------------------------------
+        # Movimento vertical
+        movimento_y = 0
 
-    tempo = clock.tick(60)
+        if teclas[pygame.K_w]:
+            movimento_y = -self.velocidade_movimento
+        elif teclas[pygame.K_s]:
+            movimento_y = self.velocidade_movimento
 
-    tempo_desde_salvamento += tempo
+        if movimento_y != 0:
+            nova_y = self.y + movimento_y
 
-    if tempo_desde_salvamento >= INTERVALO_SALVAMENTO:
+            self.colisao.y = nova_y
 
-        salvar_jogo()
+            # Verifica colisões sem limitar a coordenada a zero
+            if self.colisao.collidelist(objetos_colisao) == -1:
+                self.y = nova_y
+            else:
+                self.colisao.y = self.y
 
-        tempo_desde_salvamento = 0
+            self.andando = True
 
-    # -----------------------------------------------------
-    # EVENTOS
-    # -----------------------------------------------------
+        # Mantém a caixa de colisão sincronizada
+        self.colisao.topleft = (self.x, self.y)
 
-    for event in pygame.event.get():
+    def atualizar_animacao(self, tempo):
+        # Parado
+        if not self.andando:
+            self.frame_atual = 0
+            self.tempo_animacao = 0
+            self.sprite_atual = self.sprite_base
+            return
 
-        if event.type == pygame.QUIT:
+        # Andando
+        self.tempo_animacao += tempo
 
-            salvar_jogo()
+        if self.tempo_animacao >= self.velocidade_animacao:
+            self.tempo_animacao = 0
 
-            rodando = False
+            self.frame_atual += 1
 
-        elif event.type == pygame.KEYDOWN:
+            if self.frame_atual >= len(self.sprites_andando):
+                self.frame_atual = 0
 
-            if event.key == pygame.K_c:
-                mostrar_cordenadas = not mostrar_cordenadas
+            self.sprite_atual = self.sprites_andando[
+                self.frame_atual
+            ]
 
-            inventario.tratar_evento(event)
-
-        else:
-            inventario.tratar_evento(event)
-
-    if not rodando:
-        break
-
-    # -----------------------------------------------------
-    # MOVIMENTO DO JOGADOR
-    # -----------------------------------------------------
-
-    teclas = pygame.key.get_pressed()
-
-    if not inventario.aberto:
-
-        jogador.atualizar(
+    def atualizar(
+        self,
+        teclas,
+        tempo,
+        objetos_colisao,
+        mapa_largura,
+        mapa_altura
+    ):
+        self.movimentar(
             teclas,
-            tempo,
             objetos_colisao,
             mapa_largura,
-            mapa_altura,
+            mapa_altura
         )
 
-    else:
+        self.atualizar_animacao(tempo)
 
-        jogador.andando = False
-
-        jogador.atualizar_animacao(tempo)
-
-    # -----------------------------------------------------
-    # ATUALIZAÇÃO DA CÂMERA
-    # -----------------------------------------------------
-
-    camera_x = jogador.x - LARGURA_TELA // 2
-
-    camera_y = jogador.y - ALTURA_TELA // 2
-
-    # -----------------------------------------------------
-    # DESENHO DO MUNDO
-    # -----------------------------------------------------
-
-    tela.fill(AmareloClaro)
-
-    # Desenha todas as paredes e objetos com colisão.
-    for objeto in objetos_colisao:
-
-        pygame.draw.rect(
-            tela,
-            Preto,
-            (
-                objeto.x - camera_x,
-                objeto.y - camera_y,
-                objeto.width,
-                objeto.height,
-            ),
-        )
-
-    # Desenha o jogador.
-    jogador.desenhar(
-        tela,
-        camera_x,
-        camera_y,
-    )
-
-    # -----------------------------------------------------
-    # COORDENADAS DO JOGADOR
-    # -----------------------------------------------------
-
-    if mostrar_cordenadas:
-
-        texto = fonte.render(
-            f"X: {round(jogador.x)} | Y: {round(jogador.y)}",
-            True,
-            Verde,
-        )
-
+    def desenhar(self, tela, camera_x, camera_y):
         tela.blit(
-            texto,
-            (10, 10),
+            self.sprite_atual,
+            (
+                self.x - camera_x,
+                self.y - camera_y
+            )
         )
-
-    # -----------------------------------------------------
-    # INVENTÁRIO
-    # -----------------------------------------------------
-
-    inventario.desenhar(tela)
-
-    # -----------------------------------------------------
-    # ATUALIZAÇÃO DA TELA
-    # -----------------------------------------------------
-
-    pygame.display.flip()
-
-
-# =========================================================
-# FINALIZAÇÃO
-# =========================================================
-
-# Garante que a partida seja salva ao sair.
-salvar_jogo()
-
-pygame.quit()
-
