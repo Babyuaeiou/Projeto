@@ -2,14 +2,29 @@ import pygame
 
 
 class Personagem:
-    def __init__(self, nome, nome_sprite, quantidade_sprites):
+    def __init__(
+        self,
+        nome,
+        nome_sprite,
+        quantidade_sprites,
+        sprites_andando=None
+    ):
         self.inventario = {}
         self.nome = nome
+
+        # Combate
         self.cooldown = 1
         self.restante = 0
-        self.hpmaximo, self.hp = 20, 20
-        self.dano, self.danototal = 5, 5
-        self.defesa, self.defesatotal = 3, 3
+
+        self.hpmaximo = 20
+        self.hp = 20
+
+        self.dano = 5
+        self.danototal = 5
+
+        self.defesa = 3
+        self.defesatotal = 3
+
         self.velocidade = 1
 
         # Movimento
@@ -26,51 +41,94 @@ class Personagem:
             50
         )
 
-        # Sprites
+        # Configuração dos sprites
         self.nome_sprite = nome_sprite
         self.quantidade_sprites = quantidade_sprites
 
-        # Sprite parado
-        self.sprite_base = pygame.image.load(
-            f"{self.nome_sprite}.png"
-        ).convert_alpha()
+        # Sprites parados para cada direção
+        self.sprites_parados = {
+            "direita": pygame.image.load(
+                "D1.PNG"
+            ).convert_alpha(),
 
-        # Sprites andando
-        self.sprites_andando = []
+            "esquerda": pygame.image.load(
+                "S1.PNG"
+            ).convert_alpha(),
 
-        for i in range(1, self.quantidade_sprites + 1):
-            sprite = pygame.image.load(
-                f"{self.nome_sprite}-{i}.png"
+            "cima": pygame.image.load(
+                "T1.PNG"
+            ).convert_alpha(),
+
+            "baixo": pygame.image.load(
+                "F1.PNG"
             ).convert_alpha()
+        }
 
-            self.sprites_andando.append(sprite)
+        # Sprites de caminhada na ordem original
+        nomes_sprites = {
+            "direita": ["D1.PNG", "D2.PNG", "D3.PNG", "D1.PNG"],
+            "esquerda": ["S1.PNG", "S2.PNG", "S3.PNG", "S1.PNG"],
+            "cima": ["T1.PNG", "T2.PNG", "T3.PNG", "T1.PNG"],
+            "baixo": ["F1.PNG", "F2.PNG", "F3.PNG", "F1.PNG"]
+        }
 
-        self.sprite_atual = self.sprite_base
+        self.sprites_andando = {
+            "direita": [],
+            "esquerda": [],
+            "cima": [],
+            "baixo": []
+        }
 
-        # Animação
+        # Carrega os sprites na ordem definida acima
+        for direcao, arquivos in nomes_sprites.items():
+            for arquivo in arquivos[:quantidade_sprites]:
+                sprite = pygame.image.load(
+                    arquivo
+                ).convert_alpha()
+
+                self.sprites_andando[direcao].append(sprite)
+
+        # Estado da animação
+        self.direcao = "baixo"
+        self.sprite_atual = self.sprites_parados[self.direcao]
+
         self.frame_atual = 0
         self.tempo_animacao = 0
         self.velocidade_animacao = 100
+
+    # =====================================================
+    # COOLDOWN
+    # =====================================================
 
     def esta_pronto(self, tempo):
         if self.restante > 0:
             self.restante -= tempo
             return False
+
         return True
 
     def reiniciar_cooldown(self):
         self.restante = self.cooldown
 
+    # =====================================================
+    # COMBATE
+    # =====================================================
+
     def calcular_dano(self, alvo):
         dano_equipamento = 0
 
-        ataquetotal = self.dano + dano_equipamento
+        ataque_total = self.dano + dano_equipamento
 
-        dano = ataquetotal * (
-            ataquetotal / (ataquetotal + alvo.defesa)
+        dano = ataque_total * (
+            ataque_total / (ataque_total + alvo.defesa)
         )
 
         return dano
+
+    # =====================================================
+    # MOVIMENTO ORIGINAL
+    # Permite coordenadas negativas
+    # =====================================================
 
     def movimentar(
         self,
@@ -86,15 +144,18 @@ class Personagem:
 
         if teclas[pygame.K_a]:
             movimento_x = -self.velocidade_movimento
+            self.direcao = "esquerda"
+
         elif teclas[pygame.K_d]:
             movimento_x = self.velocidade_movimento
+            self.direcao = "direita"
 
         if movimento_x != 0:
             nova_x = self.x + movimento_x
 
             self.colisao.x = nova_x
 
-            # Verifica colisões sem limitar a coordenada a zero
+            # Verifica apenas as colisões com objetos
             if self.colisao.collidelist(objetos_colisao) == -1:
                 self.x = nova_x
             else:
@@ -107,15 +168,18 @@ class Personagem:
 
         if teclas[pygame.K_w]:
             movimento_y = -self.velocidade_movimento
+            self.direcao = "cima"
+
         elif teclas[pygame.K_s]:
             movimento_y = self.velocidade_movimento
+            self.direcao = "baixo"
 
         if movimento_y != 0:
             nova_y = self.y + movimento_y
 
             self.colisao.y = nova_y
 
-            # Verifica colisões sem limitar a coordenada a zero
+            # Verifica apenas as colisões com objetos
             if self.colisao.collidelist(objetos_colisao) == -1:
                 self.y = nova_y
             else:
@@ -123,31 +187,44 @@ class Personagem:
 
             self.andando = True
 
-        # Mantém a caixa de colisão sincronizada
+        # Sincroniza a caixa de colisão
         self.colisao.topleft = (self.x, self.y)
 
+    # =====================================================
+    # ANIMAÇÃO
+    # =====================================================
+
     def atualizar_animacao(self, tempo):
-        # Parado
+        # Sprite parado correspondente à última direção
         if not self.andando:
             self.frame_atual = 0
             self.tempo_animacao = 0
-            self.sprite_atual = self.sprite_base
+            self.sprite_atual = self.sprites_parados[self.direcao]
             return
 
-        # Andando
+        # Seleciona os sprites da direção atual
+        sprites = self.sprites_andando[self.direcao]
+
+        if not sprites:
+            self.sprite_atual = self.sprites_parados[self.direcao]
+            return
+
+        # Atualiza a animação
         self.tempo_animacao += tempo
 
         if self.tempo_animacao >= self.velocidade_animacao:
-            self.tempo_animacao = 0
+            self.tempo_animacao -= self.velocidade_animacao
 
             self.frame_atual += 1
 
-            if self.frame_atual >= len(self.sprites_andando):
+            if self.frame_atual >= len(sprites):
                 self.frame_atual = 0
 
-            self.sprite_atual = self.sprites_andando[
-                self.frame_atual
-            ]
+        self.sprite_atual = sprites[self.frame_atual]
+
+    # =====================================================
+    # ATUALIZAÇÃO DO PERSONAGEM
+    # =====================================================
 
     def atualizar(
         self,
@@ -165,6 +242,10 @@ class Personagem:
         )
 
         self.atualizar_animacao(tempo)
+
+    # =====================================================
+    # DESENHO
+    # =====================================================
 
     def desenhar(self, tela, camera_x, camera_y):
         tela.blit(
