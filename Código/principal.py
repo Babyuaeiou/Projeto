@@ -53,8 +53,9 @@ mapa_atual = "mapa_inicial"
 
 jogador = Personagem(
     "Jogador",
-    "frame_70000",
-    6
+    "F1.png",
+    12
+    
 )
 
 # Carrega a posição salva pelo sistema antigo.
@@ -290,4 +291,3 @@ while rodando:
 salvar_jogo()
 
 pygame.quit()
-
