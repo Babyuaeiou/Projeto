@@ -96,6 +96,9 @@ class Personagem:
         self.tempo_animacao = 0
         self.velocidade_animacao = 100
 
+        # Controle dos toques nas teclas
+        self.teclas_movimento_anterior = set()
+
     # =====================================================
     # COOLDOWN
     # =====================================================
@@ -192,35 +195,94 @@ class Personagem:
 
     # =====================================================
     # ANIMAÇÃO
+    # Primeiro passo -> parado -> segundo passo -> parado
     # =====================================================
 
     def atualizar_animacao(self, tempo):
-        # Sprite parado correspondente à última direção
-        if not self.andando:
+        teclas = pygame.key.get_pressed()
+
+        teclas_movimento = {
+            pygame.K_a: "esquerda",
+            pygame.K_d: "direita",
+            pygame.K_w: "cima",
+            pygame.K_s: "baixo"
+        }
+
+        teclas_atuais = {
+            tecla
+            for tecla in teclas_movimento
+            if teclas[tecla]
+        }
+
+        # Detecta um novo toque
+        novas_teclas = (
+            teclas_atuais - self.teclas_movimento_anterior
+        )
+
+        if novas_teclas:
+            tecla = next(iter(novas_teclas))
+            self.direcao = teclas_movimento[tecla]
+
+            # Avança para o próximo estado
+            self.frame_atual = (self.frame_atual + 1) % 4
+            self.tempo_animacao = 0
+
+        self.teclas_movimento_anterior = teclas_atuais
+
+        # Enquanto anda, alterna entre:
+        # primeiro passo -> parado -> segundo passo -> parado
+        if self.andando:
+            self.tempo_animacao += tempo
+
+            if self.tempo_animacao >= self.velocidade_animacao:
+                self.tempo_animacao -= self.velocidade_animacao
+                self.frame_atual = (self.frame_atual + 1) % 4
+
+            if self.frame_atual == 1:
+                indice_sprite = 1
+
+            elif self.frame_atual == 3:
+                indice_sprite = 2
+
+            else:
+                self.sprite_atual = (
+                    self.sprites_parados[self.direcao]
+                )
+                return
+
+            sprites = self.sprites_andando[self.direcao]
+
+            if len(sprites) > indice_sprite:
+                self.sprite_atual = sprites[indice_sprite]
+            else:
+                self.sprite_atual = (
+                    self.sprites_parados[self.direcao]
+                )
+
+        elif novas_teclas:
+            # Mostra o estado correspondente ao toque
+            if self.frame_atual == 1:
+                self.sprite_atual = (
+                    self.sprites_andando[self.direcao][1]
+                )
+
+            elif self.frame_atual == 3:
+                self.sprite_atual = (
+                    self.sprites_andando[self.direcao][2]
+                )
+
+            else:
+                self.sprite_atual = (
+                    self.sprites_parados[self.direcao]
+                )
+
+        else:
+            # Sprite parado correspondente à última direção
             self.frame_atual = 0
             self.tempo_animacao = 0
-            self.sprite_atual = self.sprites_parados[self.direcao]
-            return
-
-        # Seleciona os sprites da direção atual
-        sprites = self.sprites_andando[self.direcao]
-
-        if not sprites:
-            self.sprite_atual = self.sprites_parados[self.direcao]
-            return
-
-        # Atualiza a animação
-        self.tempo_animacao += tempo
-
-        if self.tempo_animacao >= self.velocidade_animacao:
-            self.tempo_animacao -= self.velocidade_animacao
-
-            self.frame_atual += 1
-
-            if self.frame_atual >= len(sprites):
-                self.frame_atual = 0
-
-        self.sprite_atual = sprites[self.frame_atual]
+            self.sprite_atual = (
+                self.sprites_parados[self.direcao]
+            )
 
     # =====================================================
     # ATUALIZAÇÃO DO PERSONAGEM
