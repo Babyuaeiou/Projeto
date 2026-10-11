@@ -161,7 +161,7 @@ while rodando:
     # TEMPO E SALVAMENTO AUTOMÁTICO
     # -----------------------------------------------------
 
-    tempo = clock.tick(60)
+    tempo = clock.tick(60 )
 
     tempo_desde_salvamento += tempo
 
@@ -254,7 +254,7 @@ while rodando:
     )
 
     # -----------------------------------------------------
-    # COORDENADAS DO JOGADOR
+    # COORDENADAS DO JOGADOR / FPS
     # -----------------------------------------------------
 
     if mostrar_cordenadas:
@@ -270,6 +270,18 @@ while rodando:
             (10, 10),
         )
 
+    fps = clock.get_fps()
+
+    texto_fps = fonte.render(
+        f'FPS: {fps:.0f}',
+        True,
+        Verde
+    )
+
+    tela.blit(
+        texto_fps,
+        (10,30)
+    )
     # -----------------------------------------------------
     # INVENTÁRIO
     # -----------------------------------------------------
