@@ -12,7 +12,6 @@ from banco import (
 )
 from inventario import Inventario
 from item import catalogo
-from floresta import Floresta
 
 
 # =========================================================
@@ -37,17 +36,12 @@ criar_banco()
 
 
 # =========================================================
-# MAPA E FLORESTA
+# MAPA
 # =========================================================
 
 mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
-
-floresta = Floresta(
-    largura=600,
-    altura=mapa_altura
-)
 
 
 # =========================================================
@@ -75,12 +69,10 @@ inventario.sincronizar_do_personagem(jogador)
 # COLISÕES
 # =========================================================
 
-objetos_colisao = list(floresta.colisoes)
-
-objetos_colisao.extend([
+objetos_colisao = [
     pygame.Rect(650, 380, 120, 170),
     pygame.Rect(1000, 250, 180, 90),
-])
+]
 
 
 # =========================================================
@@ -163,7 +155,7 @@ inimigos = [
 
 batalha = None
 
-mensagem = "Explore a floresta e encontre o caminho para o vilarejo."
+mensagem = "Explore o mapa e encontre o caminho para o vilarejo."
 mensagem_tempo = 7.0
 
 loja_aberta = False
@@ -342,9 +334,6 @@ def desenhar_mundo(camera_x, camera_y):
         tela, (120, 105, 85),
         pygame.Rect(1800 - camera_x, 820 - camera_y, 600, 150)
     )
-
-    # Floresta.
-    floresta.desenhar(tela, camera_x, camera_y)
 
     # Único inimigo.
     for inimigo in inimigos:
