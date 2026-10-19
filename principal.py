@@ -2,7 +2,7 @@
 import pygame
 
 from cores import *
-from Personagem import Personagem, Inimigo, Batalha
+from personagem import Personagem, Inimigo, Batalha
 from banco import (
     criar_banco,
     salvar_posicao,
