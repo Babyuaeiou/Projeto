@@ -1,7 +1,6 @@
 
 import pygame
 
-from cores import *
 from personagem import Personagem, Inimigo, Batalha
 from banco import (
     criar_banco,
@@ -129,9 +128,6 @@ else:
 # =========================================================
 # INIMIGO ÚNICO
 # =========================================================
-# Por enquanto, o inimigo aparece como um retângulo colorido.
-# Você poderá colocar o sprite dele depois.
-# =========================================================
 
 inimigos = [
     Inimigo(
@@ -161,7 +157,6 @@ mensagem_tempo = 7.0
 loja_aberta = False
 loja_cursor = 0
 
-# C alterna a exibição das coordenadas.
 mostrar_coordenadas = False
 
 itens_loja = [
@@ -228,12 +223,6 @@ def desenhar_texto(
 # =========================================================
 
 def desenhar_coordenadas():
-    """
-    Mostra a posição atual do jogador no mundo.
-    Os valores são atualizados continuamente enquanto
-    o jogador se movimenta.
-    """
-
     x = int(jogador.x)
     y = int(jogador.y)
 
@@ -292,6 +281,139 @@ def desenhar_coordenadas():
 
 
 # =========================================================
+# MINIMAPA
+# =========================================================
+
+def desenhar_minimapa():
+    largura_minimapa = 180
+    altura_minimapa = 135
+    margem = 10
+
+    x_minimapa = LARGURA_TELA - largura_minimapa - margem
+    y_minimapa = margem
+
+    # Fundo.
+    pygame.draw.rect(
+        tela,
+        (20, 25, 25),
+        (
+            x_minimapa,
+            y_minimapa,
+            largura_minimapa,
+            altura_minimapa
+        ),
+        border_radius=5
+    )
+
+    # Área interna.
+    area = pygame.Rect(
+        x_minimapa + 3,
+        y_minimapa + 3,
+        largura_minimapa - 6,
+        altura_minimapa - 6
+    )
+
+    # Escala do mundo para o minimapa.
+    escala_x = area.width / mapa_largura
+    escala_y = area.height / mapa_altura
+
+    def converter_x(valor):
+        return area.x + round(valor * escala_x)
+
+    def converter_y(valor):
+        return area.y + round(valor * escala_y)
+
+    def converter_retangulo(x, y, largura, altura):
+        return pygame.Rect(
+            converter_x(x),
+            converter_y(y),
+            max(1, round(largura * escala_x)),
+            max(1, round(altura * escala_y))
+        )
+
+    # Regiões do mundo.
+    regioes = [
+        (0, 0, 600, mapa_altura, (80, 135, 75)),
+        (600, 0, 600, mapa_altura, (173, 145, 92)),
+        (1200, 0, 600, mapa_altura, (45, 90, 52)),
+        (1800, 0, 600, mapa_altura, (105, 100, 110)),
+    ]
+
+    for rx, ry, rw, rh, cor in regioes:
+        pygame.draw.rect(
+            tela,
+            cor,
+            converter_retangulo(rx, ry, rw, rh)
+        )
+
+    # Caminhos.
+    caminhos = [
+        (600, 820, 600, 150),
+        (900, 820, 100, 700),
+        (1200, 820, 600, 150),
+        (1800, 820, 600, 150),
+    ]
+
+    for cx, cy, cw, ch in caminhos:
+        pygame.draw.rect(
+            tela,
+            (210, 180, 120),
+            converter_retangulo(cx, cy, cw, ch)
+        )
+
+    # Obstáculos e colisões.
+    for objeto in objetos_colisao:
+        pygame.draw.rect(
+            tela,
+            (45, 40, 35),
+            converter_retangulo(
+                objeto.x,
+                objeto.y,
+                objeto.width,
+                objeto.height
+            )
+        )
+
+    # Inimigos ainda não derrotados.
+    for inimigo in inimigos:
+        if not inimigo.derrotado:
+            pygame.draw.circle(
+                tela,
+                (235, 55, 55),
+                (
+                    converter_x(inimigo.x),
+                    converter_y(inimigo.y)
+                ),
+                3
+            )
+
+    # Jogador.
+    pygame.draw.circle(
+        tela,
+        (60, 160, 255),
+        (
+            converter_x(jogador.x),
+            converter_y(jogador.y)
+        ),
+        4
+    )
+
+    # Borda.
+    pygame.draw.rect(
+        tela,
+        (230, 230, 230),
+        (
+            x_minimapa,
+            y_minimapa,
+            largura_minimapa,
+            altura_minimapa
+        ),
+        2,
+        border_radius=5
+    )
+
+
+# =========================================================
 # DESENHAR O MUNDO
 # =========================================================
 
@@ -335,7 +457,7 @@ def desenhar_mundo(camera_x, camera_y):
         pygame.Rect(1800 - camera_x, 820 - camera_y, 600, 150)
     )
 
-    # Único inimigo.
+    # Inimigos.
     for inimigo in inimigos:
         if not inimigo.derrotado:
             inimigo.desenhar(tela, camera_x, camera_y)
@@ -343,39 +465,49 @@ def desenhar_mundo(camera_x, camera_y):
     # Jogador.
     jogador.desenhar(tela, camera_x, camera_y)
 
-    # HUD: atributos do jogador.
+    # HUD.
     pygame.draw.rect(
-        tela, (20, 25, 25),
+        tela,
+        (20, 25, 25),
         (8, ALTURA_TELA - 63, 300, 54),
         border_radius=6
     )
 
     desenhar_texto(
         f"Nv. {jogador.nivel}  HP {jogador.hp}/{jogador.hpmaximo}",
-        18, ALTURA_TELA - 56
+        18,
+        ALTURA_TELA - 56
     )
 
     desenhar_texto(
         f"Dano {jogador.danototal}  "
         f"Defesa {jogador.defesatotal}  "
         f"Moedas {jogador.moedas}",
-        18, ALTURA_TELA - 32
+        18,
+        ALTURA_TELA - 32
     )
 
-    # Coordenadas aparecem somente quando C estiver ativado.
+    # Coordenadas.
     if mostrar_coordenadas:
         desenhar_coordenadas()
 
-    # Mensagens temporárias, como compras e salvamentos.
+    # Minimapa.
+    desenhar_minimapa()
+
+    # Mensagens temporárias.
     if mensagem_tempo > 0:
         pygame.draw.rect(
-            tela, (20, 20, 20),
+            tela,
+            (20, 20, 20),
             (70, 50, 660, 38),
             border_radius=5
         )
 
         desenhar_texto(
-            mensagem, 82, 59, (255, 240, 180)
+            mensagem,
+            82,
+            59,
+            (255, 240, 180)
         )
 
 
@@ -525,7 +657,7 @@ while rodando:
                             jogador.moedas -= preco
                             jogador.adicionar_item(item_id, 1)
 
-                            inventario.sincronizar_do_personagem(
+                            inventario.sincronizar_para_personagem(
                                 jogador
                             )
 
@@ -552,7 +684,6 @@ while rodando:
                 mostrar_msg("Jogo salvo.")
 
             elif evento.key == pygame.K_c:
-                # Alterna as coordenadas sem abrir uma mensagem temporária.
                 mostrar_coordenadas = not mostrar_coordenadas
 
             elif evento.key == pygame.K_e:
@@ -588,7 +719,7 @@ while rodando:
             mapa_altura
         )
 
-        # Inicia a batalha ao encostar no único inimigo.
+        # Inicia a batalha ao encostar no inimigo.
         for inimigo in inimigos:
             if (
                 not inimigo.derrotado
