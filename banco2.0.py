@@ -6,13 +6,12 @@ from pathlib import Path
 from item import Item, catalogo
 
 
-# Salva o banco na mesma pasta deste arquivo.
+# =========================================================
+# CONFIGURAÇÃO DO BANCO
+# =========================================================
+
 CAMINHO_BANCO = Path(__file__).resolve().parent / "jogo.db"
 
-
-# =========================================================
-# CONEXÃO E CRIAÇÃO DO BANCO
-# =========================================================
 
 def conectar():
     conexao = sqlite3.connect(CAMINHO_BANCO)
@@ -24,7 +23,6 @@ def criar_banco():
     """Cria as tabelas sem apagar os dados existentes."""
 
     with conectar() as conexao:
-        # Tabela antiga: mantida para compatibilidade.
         conexao.execute("""
             CREATE TABLE IF NOT EXISTS personagem (
                 id INTEGER PRIMARY KEY,
@@ -33,7 +31,6 @@ def criar_banco():
             )
         """)
 
-        # Atributos completos do personagem.
         conexao.execute("""
             CREATE TABLE IF NOT EXISTS estado_personagem (
                 id INTEGER PRIMARY KEY,
@@ -41,7 +38,6 @@ def criar_banco():
             )
         """)
 
-        # Inventário e organização dos espaços.
         conexao.execute("""
             CREATE TABLE IF NOT EXISTS inventario (
                 id INTEGER PRIMARY KEY,
@@ -49,7 +45,6 @@ def criar_banco():
             )
         """)
 
-        # Estado geral do mundo.
         conexao.execute("""
             CREATE TABLE IF NOT EXISTS estado_jogo (
                 id INTEGER PRIMARY KEY,
@@ -57,7 +52,6 @@ def criar_banco():
             )
         """)
 
-        # Paredes e demais retângulos de colisão.
         conexao.execute("""
             CREATE TABLE IF NOT EXISTS colisoes (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -75,7 +69,7 @@ def criar_banco():
 # =========================================================
 
 def _serializar(valor):
-    """Converte valores e itens em dados que o SQLite pode guardar."""
+    """Converte os dados para formatos que podem ser salvos em JSON."""
 
     if valor is None or isinstance(valor, (str, int, float, bool)):
         return valor
@@ -107,7 +101,7 @@ def _serializar(valor):
 
 
 def _desserializar(valor):
-    """Reconstrói os itens salvos, quando possível."""
+    """Reconstrói itens e estruturas salvas em JSON."""
 
     if isinstance(valor, list):
         return [_desserializar(item) for item in valor]
@@ -117,19 +111,14 @@ def _desserializar(valor):
             dados = _desserializar(valor["dados"])
             item_id = dados.get("id")
 
-            # Reutiliza o item cadastrado no catálogo.
             item_cadastrado = catalogo.obter(item_id)
 
             if item_cadastrado is not None:
                 return item_cadastrado
 
-            # Se não estiver cadastrado, recria a instância.
             dados.pop("id", None)
 
-            return Item(
-                id=item_id,
-                **dados,
-            )
+            return Item(id=item_id, **dados)
 
         return {
             chave: _desserializar(item)
@@ -140,11 +129,11 @@ def _desserializar(valor):
 
 
 # =========================================================
-# POSIÇÃO ANTIGA — COMPATIBILIDADE
+# SALVAMENTO SIMPLES DA POSIÇÃO
 # =========================================================
 
 def salvar_posicao(x, y):
-    """Salva apenas a posição, para chamadas do código antigo."""
+    """Mantém compatibilidade com o sistema antigo de posição."""
 
     with conectar() as conexao:
         conexao.execute("""
@@ -157,7 +146,7 @@ def salvar_posicao(x, y):
 
 
 def carregar_posicao():
-    """Retorna (x, y), ou None se não houver posição salva."""
+    """Retorna (x, y) ou None caso não exista posição salva."""
 
     with conectar() as conexao:
         resultado = conexao.execute("""
@@ -179,16 +168,18 @@ def salvar_partida(
     objetos_colisao,
     mapa_atual="mapa_inicial",
 ):
-    """
-    Salva posição, atributos do personagem, inventário,
-    mapa atual e todas as colisões da lista recebida.
-    """
+    """Salva personagem, progressão, inventário, mapa e colisões."""
 
-    # Atributos relevantes do personagem.
     nomes_atributos = (
         "nome",
         "hp",
         "hpmaximo",
+        "nivel",
+        "xp",
+        "xp_proximo",
+        "moedas",
+        "dano_base",
+        "defesa_base",
         "dano",
         "danototal",
         "defesa",
@@ -197,6 +188,7 @@ def salvar_partida(
         "velocidade_movimento",
         "cooldown",
         "restante",
+        "buff_proximo_ataque",
         "x",
         "y",
     )
@@ -207,8 +199,22 @@ def salvar_partida(
         if hasattr(jogador, nome):
             valor = getattr(jogador, nome)
 
-            if isinstance(valor, (str, int, float, bool)) or valor is None:
+            if isinstance(
+                valor, (str, int, float, bool)
+            ) or valor is None:
                 dados_personagem[nome] = valor
+
+    # Guarda também os equipamentos do personagem.
+    if hasattr(jogador, "equipamentos"):
+        dados_personagem["equipamentos"] = (
+            jogador.equipamentos.copy()
+        )
+
+    # Guarda o inventário de itens do personagem, se existir.
+    if hasattr(jogador, "inventario"):
+        dados_personagem["inventario_personagem"] = (
+            _serializar(jogador.inventario)
+        )
 
     dados_inventario = {
         "espacos": _serializar(inventario.espacos),
@@ -217,8 +223,8 @@ def salvar_partida(
         "aberto": inventario.aberto,
     }
 
-    # Captura as colisões antes de abrir a transação.
-    colisões = []
+    # Prepara os retângulos de colisão.
+    colisoes = []
 
     for retangulo in objetos_colisao:
         if not all(
@@ -226,11 +232,11 @@ def salvar_partida(
             for atributo in ("x", "y", "width", "height")
         ):
             raise TypeError(
-                "Todos os objetos de colisão devem ter "
+                "Todos os objetos de colisão precisam ter "
                 "x, y, width e height."
             )
 
-        colisões.append((
+        colisoes.append((
             mapa_atual,
             retangulo.x,
             retangulo.y,
@@ -248,7 +254,7 @@ def salvar_partida(
         ensure_ascii=False,
     )
 
-    # Todas as alterações são salvas na mesma transação.
+    # Salva tudo em uma única transação.
     with conectar() as conexao:
         conexao.execute("""
             INSERT INTO personagem (id, x, y)
@@ -279,7 +285,7 @@ def salvar_partida(
                 mapa_atual = excluded.mapa_atual
         """, (mapa_atual,))
 
-        # Substitui as colisões salvas deste mapa.
+        # Substitui as colisões anteriormente salvas deste mapa.
         conexao.execute("""
             DELETE FROM colisoes
             WHERE mapa_atual = ?
@@ -287,10 +293,14 @@ def salvar_partida(
 
         conexao.executemany("""
             INSERT INTO colisoes (
-                mapa_atual, x, y, largura, altura
+                mapa_atual,
+                x,
+                y,
+                largura,
+                altura
             )
             VALUES (?, ?, ?, ?, ?)
-        """, colisões)
+        """, colisoes)
 
 
 # =========================================================
@@ -303,11 +313,10 @@ def carregar_partida(
     mapa_padrao="mapa_inicial",
 ):
     """
-    Restaura os dados do jogador e do inventário.
+    Carrega a partida salva.
 
-    Retorna:
-        None, se não existir uma partida completa;
-        ou um dicionário com o mapa e as colisões salvas.
+    Retorna None caso não exista uma partida completa.
+    Caso exista, retorna o mapa e suas colisões.
     """
 
     with conectar() as conexao:
@@ -336,9 +345,7 @@ def carregar_partida(
         dados_inventario = json.loads(linha_inventario[0])
 
         mapa_atual = (
-            linha_mapa[0]
-            if linha_mapa
-            else mapa_padrao
+            linha_mapa[0] if linha_mapa else mapa_padrao
         )
 
         linhas_colisoes = conexao.execute("""
@@ -348,19 +355,39 @@ def carregar_partida(
             ORDER BY id
         """, (mapa_atual,)).fetchall()
 
-    # Restaura somente atributos existentes na classe.
+    # Restaura os atributos do personagem.
     for nome, valor in dados_personagem.items():
+        if nome in (
+            "equipamentos",
+            "inventario_personagem",
+        ):
+            continue
+
         if hasattr(jogador, nome):
             setattr(jogador, nome, valor)
 
-    # Sincroniza a caixa de colisão do personagem.
+    # Restaura os equipamentos.
+    if "equipamentos" in dados_personagem:
+        if hasattr(jogador, "equipamentos"):
+            jogador.equipamentos.update(
+                dados_personagem["equipamentos"]
+            )
+
+    # Restaura o inventário interno do personagem.
+    if "inventario_personagem" in dados_personagem:
+        if hasattr(jogador, "inventario"):
+            jogador.inventario = _desserializar(
+                dados_personagem["inventario_personagem"]
+            )
+
+    # Atualiza a caixa de colisão para a posição carregada.
     if hasattr(jogador, "colisao"):
         jogador.colisao.topleft = (
             round(jogador.x),
             round(jogador.y),
         )
 
-    # Restaura os espaços do inventário.
+    # Restaura os espaços do inventário visual.
     espacos_salvos = _desserializar(
         dados_inventario.get("espacos", [])
     )
@@ -389,8 +416,9 @@ def carregar_partida(
         "espaco_selecionado"
     )
 
-    if isinstance(selecionado, int) and (
-        0 <= selecionado < total_espacos
+    if (
+        isinstance(selecionado, int)
+        and 0 <= selecionado < total_espacos
     ):
         inventario.espaco_selecionado = selecionado
     else:
