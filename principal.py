@@ -1,6 +1,6 @@
-
 import pygame
 
+from cores import *
 from personagem import Personagem, Inimigo, Batalha
 from banco import (
     criar_banco,
@@ -11,7 +11,6 @@ from banco import (
 )
 from inventario import Inventario
 from item import catalogo
-
 
 # =========================================================
 # INICIALIZAÇÃO
@@ -33,7 +32,6 @@ fonte_grande = pygame.font.Font(None, 34)
 
 criar_banco()
 
-
 # =========================================================
 # MAPA
 # =========================================================
@@ -41,7 +39,6 @@ criar_banco()
 mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
-
 
 # =========================================================
 # JOGADOR E INVENTÁRIO
@@ -63,16 +60,11 @@ jogador.adicionar_item("pedra_afiacao", 1)
 inventario = Inventario()
 inventario.sincronizar_do_personagem(jogador)
 
-
 # =========================================================
 # COLISÕES
 # =========================================================
 
-objetos_colisao = [
-    pygame.Rect(650, 380, 120, 170),
-    pygame.Rect(1000, 250, 180, 90),
-]
-
+objetos_colisao = []
 
 # =========================================================
 # CARREGAR PARTIDA
@@ -87,33 +79,6 @@ dados = carregar_partida(
 if dados:
     mapa_atual = dados["mapa_atual"]
 
-    colisoes_salvas = [
-        pygame.Rect(
-            int(c["x"]),
-            int(c["y"]),
-            int(c["largura"]),
-            int(c["altura"])
-        )
-        for c in dados.get("colisoes", [])
-    ]
-
-    existentes = {
-        (r.x, r.y, r.width, r.height)
-        for r in objetos_colisao
-    }
-
-    for retangulo in colisoes_salvas:
-        chave = (
-            retangulo.x,
-            retangulo.y,
-            retangulo.width,
-            retangulo.height
-        )
-
-        if chave not in existentes:
-            objetos_colisao.append(retangulo)
-            existentes.add(chave)
-
 else:
     posicao = carregar_posicao()
 
@@ -124,9 +89,8 @@ else:
             round(jogador.y)
         )
 
-
 # =========================================================
-# INIMIGO ÚNICO
+# INIMIGOS
 # =========================================================
 
 inimigos = [
@@ -144,15 +108,11 @@ inimigos = [
     )
 ]
 
-
 # =========================================================
 # ESTADO DO JOGO
 # =========================================================
 
 batalha = None
-
-mensagem = "Explore o mapa e encontre o caminho para o vilarejo."
-mensagem_tempo = 7.0
 
 loja_aberta = False
 loja_cursor = 0
@@ -170,7 +130,6 @@ itens_loja = [
     ("armadura_ferro", 90),
 ]
 
-
 # =========================================================
 # SALVAMENTO
 # =========================================================
@@ -187,17 +146,9 @@ def salvar_jogo():
 
     salvar_posicao(jogador.x, jogador.y)
 
-
 # =========================================================
-# MENSAGENS E TEXTO
+# TEXTO
 # =========================================================
-
-def mostrar_msg(texto, duracao=3):
-    global mensagem, mensagem_tempo
-
-    mensagem = texto
-    mensagem_tempo = duracao
-
 
 def desenhar_texto(
     texto,
@@ -217,17 +168,13 @@ def desenhar_texto(
 
     tela.blit(imagem, (x, y))
 
-
 # =========================================================
-# COORDENADAS EM TEMPO REAL
+# COORDENADAS
 # =========================================================
 
 def desenhar_coordenadas():
     x = int(jogador.x)
     y = int(jogador.y)
-
-    texto_x = f"X: {x}"
-    texto_y = f"Y: {y}"
 
     largura_painel = 150
     altura_painel = 66
@@ -268,17 +215,16 @@ def desenhar_coordenadas():
     )
 
     desenhar_texto(
-        texto_x,
+        f"X: {x}",
         painel_x + 10,
         painel_y + 28
     )
 
     desenhar_texto(
-        texto_y,
+        f"Y: {y}",
         painel_x + 78,
         painel_y + 28
     )
-
 
 # =========================================================
 # MINIMAPA
@@ -292,7 +238,6 @@ def desenhar_minimapa():
     x_minimapa = LARGURA_TELA - largura_minimapa - margem
     y_minimapa = margem
 
-    # Fundo.
     pygame.draw.rect(
         tela,
         (20, 25, 25),
@@ -305,7 +250,6 @@ def desenhar_minimapa():
         border_radius=5
     )
 
-    # Área interna.
     area = pygame.Rect(
         x_minimapa + 3,
         y_minimapa + 3,
@@ -313,7 +257,6 @@ def desenhar_minimapa():
         altura_minimapa - 6
     )
 
-    # Escala do mundo para o minimapa.
     escala_x = area.width / mapa_largura
     escala_y = area.height / mapa_altura
 
@@ -323,69 +266,12 @@ def desenhar_minimapa():
     def converter_y(valor):
         return area.y + round(valor * escala_y)
 
-    def converter_retangulo(x, y, largura, altura):
-        return pygame.Rect(
-            converter_x(x),
-            converter_y(y),
-            max(1, round(largura * escala_x)),
-            max(1, round(altura * escala_y))
-        )
-
-    # Regiões do mundo.
-    regioes = [
-        (0, 0, 600, mapa_altura, (80, 135, 75)),
-        (600, 0, 600, mapa_altura, (173, 145, 92)),
-        (1200, 0, 600, mapa_altura, (45, 90, 52)),
-        (1800, 0, 600, mapa_altura, (105, 100, 110)),
-    ]
-
-    for rx, ry, rw, rh, cor in regioes:
-        pygame.draw.rect(
-            tela,
-            cor,
-            converter_retangulo(rx, ry, rw, rh)
-        )
-
-    # Caminhos.
-    caminhos = [
-        (600, 820, 600, 150),
-        (900, 820, 100, 700),
-        (1200, 820, 600, 150),
-        (1800, 820, 600, 150),
-    ]
-
-    for cx, cy, cw, ch in caminhos:
-        pygame.draw.rect(
-            tela,
-            (210, 180, 120),
-            converter_retangulo(cx, cy, cw, ch)
-        )
-
-    # Obstáculos e colisões.
-    for objeto in objetos_colisao:
-        pygame.draw.rect(
-            tela,
-            (45, 40, 35),
-            converter_retangulo(
-                objeto.x,
-                objeto.y,
-                objeto.width,
-                objeto.height
-            )
-        )
-
-    # Inimigos ainda não derrotados.
-    for inimigo in inimigos:
-        if not inimigo.derrotado:
-            pygame.draw.circle(
-                tela,
-                (235, 55, 55),
-                (
-                    converter_x(inimigo.x),
-                    converter_y(inimigo.y)
-                ),
-                3
-            )
+    # Representação neutra do mapa.
+    pygame.draw.rect(
+        tela,
+        (85, 85, 90),
+        area
+    )
 
     # Jogador.
     pygame.draw.circle(
@@ -398,7 +284,19 @@ def desenhar_minimapa():
         4
     )
 
-    # Borda.
+    # Inimigos.
+    for inimigo in inimigos:
+        if not inimigo.derrotado:
+            pygame.draw.circle(
+                tela,
+                (235, 55, 55),
+                (
+                    converter_x(inimigo.x),
+                    converter_y(inimigo.y)
+                ),
+                3
+            )
+
     pygame.draw.rect(
         tela,
         (230, 230, 230),
@@ -412,50 +310,12 @@ def desenhar_minimapa():
         border_radius=5
     )
 
-
 # =========================================================
 # DESENHAR O MUNDO
 # =========================================================
 
 def desenhar_mundo(camera_x, camera_y):
-    tela.fill((80, 135, 75))
-
-    # Regiões do mundo.
-    pygame.draw.rect(
-        tela, (173, 145, 92),
-        pygame.Rect(600 - camera_x, -camera_y, 600, mapa_altura)
-    )
-
-    pygame.draw.rect(
-        tela, (45, 90, 52),
-        pygame.Rect(1200 - camera_x, -camera_y, 600, mapa_altura)
-    )
-
-    pygame.draw.rect(
-        tela, (105, 100, 110),
-        pygame.Rect(1800 - camera_x, -camera_y, 600, mapa_altura)
-    )
-
-    # Caminhos.
-    pygame.draw.rect(
-        tela, (160, 130, 85),
-        pygame.Rect(600 - camera_x, 820 - camera_y, 600, 150)
-    )
-
-    pygame.draw.rect(
-        tela, (160, 130, 85),
-        pygame.Rect(900 - camera_x, 820 - camera_y, 100, 700)
-    )
-
-    pygame.draw.rect(
-        tela, (135, 112, 81),
-        pygame.Rect(1200 - camera_x, 820 - camera_y, 600, 150)
-    )
-
-    pygame.draw.rect(
-        tela, (120, 105, 85),
-        pygame.Rect(1800 - camera_x, 820 - camera_y, 600, 150)
-    )
+    tela.fill((85, 85, 90))
 
     # Inimigos.
     for inimigo in inimigos:
@@ -469,7 +329,7 @@ def desenhar_mundo(camera_x, camera_y):
     pygame.draw.rect(
         tela,
         (20, 25, 25),
-        (8, ALTURA_TELA - 63, 300, 54),
+        (8, ALTURA_TELA - 63, 340, 54),
         border_radius=6
     )
 
@@ -487,29 +347,10 @@ def desenhar_mundo(camera_x, camera_y):
         ALTURA_TELA - 32
     )
 
-    # Coordenadas.
     if mostrar_coordenadas:
         desenhar_coordenadas()
 
-    # Minimapa.
     desenhar_minimapa()
-
-    # Mensagens temporárias.
-    if mensagem_tempo > 0:
-        pygame.draw.rect(
-            tela,
-            (20, 20, 20),
-            (70, 50, 660, 38),
-            border_radius=5
-        )
-
-        desenhar_texto(
-            mensagem,
-            82,
-            59,
-            (255, 240, 180)
-        )
-
 
 # =========================================================
 # LOJA
@@ -532,7 +373,7 @@ def desenhar_loja():
     )
 
     desenhar_texto(
-        "LOJA DO VILAREJO",
+        "LOJA",
         120,
         75,
         (255, 225, 145),
@@ -540,7 +381,7 @@ def desenhar_loja():
     )
 
     desenhar_texto(
-        f"Suas moedas: {jogador.moedas}",
+        f"Moedas: {jogador.moedas}",
         120,
         115
     )
@@ -573,7 +414,6 @@ def desenhar_loja():
         (210, 210, 210)
     )
 
-
 # =========================================================
 # LOOP PRINCIPAL
 # =========================================================
@@ -582,12 +422,10 @@ rodando = True
 
 while rodando:
     dt = min(clock.tick(60) / 1000, 0.05)
-    mensagem_tempo = max(0, mensagem_tempo - dt)
 
     for evento in pygame.event.get():
 
         if evento.type == pygame.QUIT:
-            salvar_jogo()
             rodando = False
 
         elif batalha is not None:
@@ -597,13 +435,6 @@ while rodando:
                 if batalha.vitoria:
                     batalha.inimigo.derrotado = True
 
-                    mostrar_msg(
-                        f"Você venceu! +"
-                        f"{batalha.inimigo.xp_recompensa} XP "
-                        f"e +{batalha.inimigo.moedas_recompensa} moedas.",
-                        5
-                    )
-
                 elif batalha.derrota:
                     jogador.hp = jogador.hpmaximo
                     jogador.x = 650
@@ -612,11 +443,6 @@ while rodando:
                     jogador.colisao.topleft = (
                         round(jogador.x),
                         round(jogador.y)
-                    )
-
-                    mostrar_msg(
-                        "Você voltou ao vilarejo e recuperou o HP.",
-                        5
                     )
 
                 batalha = None
@@ -641,28 +467,15 @@ while rodando:
                 elif evento.key in (pygame.K_RETURN, pygame.K_z):
                     item_id, preco = itens_loja[loja_cursor]
 
-                    if jogador.moedas < preco:
-                        mostrar_msg(
-                            "Você não tem moedas suficientes."
-                        )
-
-                    else:
+                    if jogador.moedas >= preco:
                         item = catalogo.obter(item_id)
 
-                        if item is None:
-                            mostrar_msg(
-                                "Esse item não existe no catálogo."
-                            )
-                        else:
+                        if item is not None:
                             jogador.moedas -= preco
                             jogador.adicionar_item(item_id, 1)
 
                             inventario.sincronizar_para_personagem(
                                 jogador
-                            )
-
-                            mostrar_msg(
-                                f"Comprou {item.nome}."
                             )
 
                             salvar_jogo()
@@ -676,12 +489,10 @@ while rodando:
         elif evento.type == pygame.KEYDOWN:
 
             if evento.key == pygame.K_ESCAPE:
-                salvar_jogo()
                 rodando = False
 
             elif evento.key == pygame.K_F5:
                 salvar_jogo()
-                mostrar_msg("Jogo salvo.")
 
             elif evento.key == pygame.K_c:
                 mostrar_coordenadas = not mostrar_coordenadas
@@ -693,15 +504,9 @@ while rodando:
                 )
 
             elif evento.key == pygame.K_l:
-                if (
-                    600 <= jogador.x <= 1200
-                    and 80 <= jogador.y <= 260
-                ):
-                    loja_aberta = True
-                else:
-                    mostrar_msg("A loja fica no vilarejo.")
+                loja_aberta = True
 
-    # =====================================================
+ # =====================================================
     # ATUALIZAR JOGADOR E ENCONTRO
     # =====================================================
 
@@ -727,14 +532,6 @@ while rodando:
             ):
                 batalha = Batalha(jogador, inimigo)
                 break
-
-        # Cura ao entrar na praça do vilarejo.
-        if (
-            650 < jogador.x < 900
-            and 100 < jogador.y < 230
-            and jogador.hp < jogador.hpmaximo
-        ):
-            jogador.hp = jogador.hpmaximo
 
     # =====================================================
     # CÂMERA
@@ -772,7 +569,6 @@ while rodando:
             inventario.desenhar(tela, jogador)
 
     pygame.display.flip()
-
 
 # =========================================================
 # ENCERRAMENTO
