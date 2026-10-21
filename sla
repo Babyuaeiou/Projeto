@@ -1,0 +1,112 @@
+Nome: Edinnu: Small Forest
+
+Site: itch.io
+
+Criador: rowdy41
+
+Esse pacote tem árvores, arbustos, grama, pedras e caminhos. Você pode baixar gratuitamente usando a opção de preço livre (Name your own price). Os arquivos vêm em PNG dentro de um ZIP. 
+
+itch.io
+
+
+
+Alternativa: Mushroom Forest Background (FREE)
+
+Site: itch.io
+
+Criador: Moose n' Stoat
+
+Formato: PNG
+
+Preço: gratuito, com doações opcionais.
+
+Tamanho disponível: 3300 × 2550 pixels na versão HD. 
+
+itch.io
+
+
+
+
+Passo 1 — Coloque a imagem na pasta do projeto
+Extraia o ZIP e copie a imagem completa HD para esta estrutura:
+
+
+text
+trabalhos externos/
+├── principal.py
+├── personagem.py
+├── inventario.py
+├── banco.py
+├── item.py
+└── assets/
+    └── mapa_floresta.png
+Renomeie a imagem completa para mapa_floresta.png.
+
+Passo 2 — Carregue a imagem
+No seu código principal, procure estas linhas:
+
+
+python
+mapa_largura = 2400
+mapa_altura = 1800
+mapa_atual = "mapa_inicial"
+Substitua por:
+
+
+python
+mapa = pygame.image.load(
+    "assets/mapa_floresta.png"
+).convert()
+
+mapa_largura = mapa.get_width()
+mapa_altura = mapa.get_height()
+mapa_atual = "mapa_inicial"
+Assim, o tamanho do mapa será definido automaticamente pelas dimensões da imagem.
+
+Passo 3 — Substitua o desenho do cenário
+Procure a função desenhar_mundo(camera_x, camera_y).
+
+Dentro dela, remova o tela.fill(...) e os retângulos que desenham as regiões e os caminhos do cenário. No lugar deles, coloque:
+
+
+python
+def desenhar_mundo(camera_x, camera_y):
+    tela.blit(
+        mapa,
+        (-int(camera_x), -int(camera_y))
+    )
+
+    # Inimigos.
+    for inimigo in inimigos:
+        if not inimigo.derrotado:
+            inimigo.desenhar(tela, camera_x, camera_y)
+
+    # Jogador.
+    jogador.desenhar(tela, camera_x, camera_y)
+
+    # HUD.
+    pygame.draw.rect(
+        tela,
+        (20, 25, 25),
+        (8, ALTURA_TELA - 63, 340, 54),
+        border_radius=6
+    )
+
+    desenhar_texto(
+        f"Nv. {jogador.nivel}  HP {jogador.hp}/{jogador.hpmaximo}",
+        18,
+        ALTURA_TELA - 56
+    )
+
+    desenhar_texto(
+        f"Dano {jogador.danototal}  "
+        f"Defesa {jogador.defesatotal}  "
+        f"Moedas {jogador.moedas}",
+        18,
+        ALTURA_TELA - 32
+    )
+
+    if mostrar_coordenadas:
+        desenhar_coordenadas()
+
+    desenhar_minimapa()
