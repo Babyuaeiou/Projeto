@@ -1,8 +1,9 @@
-
 import pygame
 import random
 import math
 import re
+
+from cores import *
 
 
 # =========================================================
@@ -45,7 +46,7 @@ class Personagem:
         # Inventário: {id_do_item: quantidade}
         self.inventario = {}
 
-        # IDs dos itens equipados
+        # Equipamentos
         self.equipamentos = {
             "arma": None,
             "armadura": None
@@ -72,7 +73,6 @@ class Personagem:
             "baixo": ["F1.PNG", "F2.PNG", "F3.PNG", "F1.PNG"]
         }
 
-        # Permite informar uma lista de sprites própria.
         if isinstance(sprites_andando, dict):
             for direcao in nomes_sprites:
                 if direcao in sprites_andando:
@@ -186,11 +186,9 @@ class Personagem:
 
         equipamento_anterior = self.equipamentos.get(slot)
 
-        # Retira do inventário o item que será equipado.
         if not self.remover_item(item_id, 1):
             return False
 
-        # Devolve o equipamento antigo ao inventário.
         if equipamento_anterior:
             self.adicionar_item(equipamento_anterior, 1)
 
@@ -202,6 +200,7 @@ class Personagem:
         from item import catalogo
 
         item = catalogo.obter(item_id)
+
         if item is None:
             return False
 
@@ -218,6 +217,7 @@ class Personagem:
         from item import catalogo
 
         item = catalogo.obter(item_id)
+
         if item is None:
             return False
 
@@ -322,7 +322,11 @@ class Personagem:
 
         defesa_alvo = max(
             0,
-            getattr(alvo, "defesatotal", getattr(alvo, "defesa", 0))
+            getattr(
+                alvo,
+                "defesatotal",
+                getattr(alvo, "defesa", 0)
+            )
         )
 
         if ataque <= 0:
@@ -377,7 +381,9 @@ class Personagem:
                 and self.colisao.right <= mapa_largura
             )
 
-            colidiu = self.colisao.collidelist(objetos_colisao) != -1
+            colidiu = (
+                self.colisao.collidelist(objetos_colisao) != -1
+            )
 
             if dentro_mapa and not colidiu:
                 self.x = nova_x
@@ -394,14 +400,20 @@ class Personagem:
                 and self.colisao.bottom <= mapa_altura
             )
 
-            colidiu = self.colisao.collidelist(objetos_colisao) != -1
+            colidiu = (
+                self.colisao.collidelist(objetos_colisao) != -1
+            )
 
             if dentro_mapa and not colidiu:
                 self.y = nova_y
 
             self.colisao.y = round(self.y)
 
-        self.colisao.topleft = (round(self.x), round(self.y))
+        self.colisao.topleft = (
+            round(self.x),
+            round(self.y)
+        )
+
         self.andando = bool(movimento_x or movimento_y)
 
     # =====================================================
@@ -427,7 +439,9 @@ class Personagem:
             if teclas[tecla]
         }
 
-        novas_teclas = teclas_atuais - self.teclas_movimento_anterior
+        novas_teclas = (
+            teclas_atuais - self.teclas_movimento_anterior
+        )
 
         if novas_teclas:
             tecla = next(iter(novas_teclas))
@@ -446,7 +460,9 @@ class Personagem:
                     self.frame_atual = (
                         self.frame_atual + 1
                     ) % len(sprites)
+
                     self.sprite_atual = sprites[self.frame_atual]
+
         else:
             self.frame_atual = 0
             self.tempo_animacao = 0
@@ -466,6 +482,7 @@ class Personagem:
             mapa_largura,
             mapa_altura
         )
+
         self.atualizar_animacao(tempo)
 
     def desenhar(self, tela, camera_x, camera_y):
@@ -496,7 +513,7 @@ class Inimigo:
         xp_recompensa=10,
         moedas_recompensa=5,
         chefe=False,
-        cor=(170, 55, 55),
+        cor=VermelhoTijolo,
         sprite="d1.png",
         tamanho_sprite=(64, 64),
         velocidade_movimento=45,
@@ -514,11 +531,20 @@ class Inimigo:
 
         self.x = float(x)
         self.y = float(y)
+
         self.largura_sprite, self.altura_sprite = tamanho_sprite
         self.largura_colisao, self.altura_colisao = colisao_tamanho
+
         self.colisao = pygame.Rect(
-            round(self.x + (self.largura_sprite - self.largura_colisao) / 2),
-            round(self.y + self.altura_sprite - self.altura_colisao),
+            round(
+                self.x
+                + (self.largura_sprite - self.largura_colisao) / 2
+            ),
+            round(
+                self.y
+                + self.altura_sprite
+                - self.altura_colisao
+            ),
             self.largura_colisao,
             self.altura_colisao,
         )
@@ -548,8 +574,10 @@ class Inimigo:
             "cima": [],
             "baixo": [],
         }
+
         self.sprite_atual = None
         self._espelhar = False
+
         self.carregar_sprites(sprite)
 
     @property
@@ -568,17 +596,19 @@ class Inimigo:
             return
 
         caminho = os.path.abspath(sprite)
+
         if not os.path.isfile(caminho) and not os.path.isabs(sprite):
             caminho = os.path.join(
                 os.path.dirname(os.path.abspath(__file__)),
                 sprite,
             )
+
         pasta = os.path.dirname(caminho) or os.getcwd()
         nome = os.path.basename(caminho)
         stem, extensao = os.path.splitext(nome)
 
-        # Aceita d1.png como base e tenta carregar d1.png, d2.png, d3.png.
         match = re.match(r"^([A-Za-z_ -]*?)(\d+)$", stem)
+
         if match:
             prefixo = match.group(1)
             numero_inicial = int(match.group(2))
@@ -586,106 +616,196 @@ class Inimigo:
             prefixo = stem
             numero_inicial = 1
 
-        arquivos = []
-        for numero in range(numero_inicial, numero_inicial + 6):
-            candidato = os.path.join(pasta, f"{prefixo}{numero}{extensao}")
-            if os.path.isfile(candidato):
-                arquivos.append(candidato)
+        extensoes = [
+            extensao,
+            ".png",
+            ".PNG",
+            ".jpg",
+            ".JPG",
+            ".jpeg",
+            ".JPEG"
+        ]
 
-        if not arquivos and os.path.isfile(caminho):
-            arquivos = [caminho]
+        nomes_direcao = {
+            "direita": ["D", "d"],
+            "esquerda": ["S", "s"],
+            "cima": ["T", "t"],
+            "baixo": ["F", "f"]
+        }
 
-        imagens = []
-        for arquivo in arquivos:
+        def tentar_carregar(caminho_imagem):
+            if not os.path.isfile(caminho_imagem):
+                return None
+
             try:
-                imagem = pygame.image.load(arquivo).convert_alpha()
+                imagem = pygame.image.load(
+                    caminho_imagem
+                ).convert_alpha()
+
                 imagem = pygame.transform.scale(
                     imagem,
-                    (self.largura_sprite, self.altura_sprite),
+                    (
+                        self.largura_sprite,
+                        self.altura_sprite
+                    )
                 )
-                imagens.append(imagem)
-            except (pygame.error, OSError) as erro:
-                print(f"[Inimigo] Não foi possível carregar {arquivo}: {erro}")
 
-        if imagens:
-            # O conjunto é usado para animar as quatro direções.
-            # Para esquerda, os quadros são espelhados horizontalmente.
-            for direcao in self.sprites:
-                self.sprites[direcao] = (
-                    [pygame.transform.flip(img, True, False) for img in imagens]
-                    if direcao == "esquerda"
-                    else imagens
-                )
-            self.sprite_atual = imagens[0]
+                return imagem
+
+            except (pygame.error, OSError):
+                return None
+
+        sprites_carregados = {}
+
+        for direcao, prefixos in nomes_direcao.items():
+            quadros = []
+
+            for pref in prefixos:
+                for numero in range(1, 5):
+                    encontrados = []
+
+                    for ext in extensoes:
+                        nome_arquivo = f"{pref}{numero}{ext}"
+                        caminho_imagem = os.path.join(
+                            pasta,
+                            nome_arquivo
+                        )
+
+                        if os.path.isfile(caminho_imagem):
+                            encontrados.append(caminho_imagem)
+
+                    if encontrados:
+                        imagem = tentar_carregar(encontrados[0])
+
+                        if imagem is not None:
+                            quadros.append(imagem)
+
+                if quadros:
+                    break
+
+            sprites_carregados[direcao] = quadros
+
+        # Se não houver sprites direcionais, tenta carregar o sprite informado.
+        if not any(sprites_carregados.values()):
+            imagem = tentar_carregar(caminho)
+
+            if imagem is not None:
+                sprites_carregados["baixo"] = [imagem]
+
+        # Usa o sprite para todas as direções quando só existe uma direção.
+        primeiro_grupo = next(
+            (
+                quadros
+                for quadros in sprites_carregados.values()
+                if quadros
+            ),
+            []
+        )
+
+        for direcao in self.sprites:
+            quadros = sprites_carregados.get(direcao, [])
+
+            if not quadros:
+                quadros = list(primeiro_grupo)
+
+            self.sprites[direcao] = quadros
+
+        if self.sprites[self.direcao]:
+            self.sprite_atual = self.sprites[self.direcao][0]
 
     def atualizar_colisao(self):
-        self.colisao = pygame.Rect(
-            round(self.x + (self.largura_sprite - self.largura_colisao) / 2),
-            round(self.y + self.altura_sprite - self.altura_colisao),
-            self.largura_colisao,
-            self.altura_colisao,
+        self.colisao.topleft = (
+            round(
+                self.x
+                + (self.largura_sprite - self.largura_colisao) / 2
+            ),
+            round(
+                self.y
+                + self.altura_sprite
+                - self.altura_colisao
+            ),
         )
 
     def pode_ocupar(
         self,
         novo_x,
         novo_y,
-        obstaculos=None,
-        outros_npcs=None,
-        limites_mundo=None,
+        obstaculos,
+        outros_inimigos,
+        limites_mundo
     ):
-        rect = pygame.Rect(
-            round(novo_x + (self.largura_sprite - self.largura_colisao) / 2),
-            round(novo_y + self.altura_sprite - self.altura_colisao),
+        import os
+
+        retangulo = pygame.Rect(
+            round(
+                novo_x
+                + (self.largura_sprite - self.largura_colisao) / 2
+            ),
+            round(
+                novo_y
+                + self.altura_sprite
+                - self.altura_colisao
+            ),
             self.largura_colisao,
             self.altura_colisao,
         )
 
-        for obstaculo in (obstaculos or []):
-            if rect.colliderect(obstaculo):
+        largura_mundo, altura_mundo = limites_mundo
+
+        if (
+            retangulo.left < 0
+            or retangulo.top < 0
+            or retangulo.right > largura_mundo
+            or retangulo.bottom > altura_mundo
+        ):
+            return False
+
+        for obstaculo in obstaculos:
+            if retangulo.colliderect(obstaculo):
                 return False
 
-        for outro in (outros_npcs or []):
-            if outro is self or getattr(outro, "derrotado", False):
+        for outro in outros_inimigos:
+            if outro is self or outro.derrotado:
                 continue
-            if rect.colliderect(outro.colisao):
-                return False
 
-        if limites_mundo:
-            largura, altura = limites_mundo
-            if rect.left < 0 or rect.top < 0 or rect.right > largura or rect.bottom > altura:
+            if retangulo.colliderect(outro.colisao):
                 return False
 
         return True
-
-    def escolher_destino(self):
-        distancia = random.uniform(
-            max(10, self.distancia_maxima * 0.25),
-            max(11, self.distancia_maxima),
-        )
-        angulo = random.uniform(0, 2 * math.pi)
-        self.destino_x = self.x + math.cos(angulo) * distancia
-        self.destino_y = self.y + math.sin(angulo) * distancia
-        self.andando = True
 
     def atualizar(
         self,
         delta_ms,
         obstaculos=None,
         outros_inimigos=None,
-        limites_mundo=None,
-        jogador=None,
+        limites_mundo=(30000, 20000),
+        jogador=None
     ):
         if self.derrotado or not self.pode_andar:
             self.andando = False
             return
 
+        obstaculos = list(obstaculos or [])
+        outros_inimigos = list(outros_inimigos or [])
+
         self.tempo_parado += delta_ms
-        if not self.andando:
-            if self.tempo_parado >= self.tempo_espera:
-                self.tempo_parado = 0
-                self.escolher_destino()
-            return
+
+        if self.tempo_parado >= self.tempo_espera:
+            self.tempo_parado = 0
+            self.tempo_espera = random.randint(700, 1700)
+
+            deslocamento_x = random.randint(
+                -int(self.distancia_maxima),
+                int(self.distancia_maxima)
+            )
+
+            deslocamento_y = random.randint(
+                -int(self.distancia_maxima),
+                int(self.distancia_maxima)
+            )
+
+            self.destino_x = self.x + deslocamento_x
+            self.destino_y = self.y + deslocamento_y
 
         dx = self.destino_x - self.x
         dy = self.destino_y - self.y
@@ -706,25 +826,40 @@ class Inimigo:
             self.velocidade_movimento * (delta_ms / 1000),
             distancia,
         )
+
         novo_x = self.x + (dx / distancia) * passo
         novo_y = self.y + (dy / distancia) * passo
 
-        obstaculos = list(obstaculos or [])
-        outros = list(outros_inimigos or [])
-        if jogador is not None:
-            # Os inimigos podem se aproximar do jogador para iniciar combate,
-            # mas a colisão com ele é tratada pelo sistema de encontro.
-            pass
-
         moveu = False
-        if self.pode_ocupar(novo_x, novo_y, obstaculos, outros, limites_mundo):
+
+        if self.pode_ocupar(
+            novo_x,
+            novo_y,
+            obstaculos,
+            outros_inimigos,
+            limites_mundo
+        ):
             self.x, self.y = novo_x, novo_y
             moveu = True
+
         else:
-            if self.pode_ocupar(novo_x, self.y, obstaculos, outros, limites_mundo):
+            if self.pode_ocupar(
+                novo_x,
+                self.y,
+                obstaculos,
+                outros_inimigos,
+                limites_mundo
+            ):
                 self.x = novo_x
                 moveu = True
-            if self.pode_ocupar(self.x, novo_y, obstaculos, outros, limites_mundo):
+
+            if self.pode_ocupar(
+                self.x,
+                novo_y,
+                obstaculos,
+                outros_inimigos,
+                limites_mundo
+            ):
                 self.y = novo_y
                 moveu = True
 
@@ -736,12 +871,19 @@ class Inimigo:
             self.tempo_espera = random.randint(500, 1300)
             return
 
+        self.andando = True
         self.tempo_animacao += delta_ms
+
         if self.tempo_animacao >= self.intervalo_animacao:
             self.tempo_animacao %= self.intervalo_animacao
+
             quadros = self.sprites.get(self.direcao, [])
+
             if quadros:
-                self.quadro = (self.quadro + 1) % len(quadros)
+                self.quadro = (
+                    self.quadro + 1
+                ) % len(quadros)
+
                 self.sprite_atual = quadros[self.quadro]
 
     def desenhar(self, tela, camera_x, camera_y):
@@ -750,11 +892,13 @@ class Inimigo:
 
         pos_x = round(self.x - camera_x)
         pos_y = round(self.y - camera_y)
+
         quadros = self.sprites.get(self.direcao, [])
 
         if quadros:
             imagem = quadros[self.quadro % len(quadros)]
             tela.blit(imagem, (pos_x, pos_y))
+
         else:
             retangulo = pygame.Rect(
                 pos_x,
@@ -762,15 +906,45 @@ class Inimigo:
                 self.colisao.width,
                 self.colisao.height,
             )
-            pygame.draw.rect(tela, self.cor, retangulo, border_radius=7)
-            pygame.draw.rect(tela, (25, 25, 25), retangulo, 2, border_radius=7)
+
+            pygame.draw.rect(
+                tela,
+                self.cor,
+                retangulo,
+                border_radius=7
+            )
+
+            pygame.draw.rect(
+                tela,
+                Preto,
+                retangulo,
+                2,
+                border_radius=7
+            )
 
         fonte = pygame.font.Font(None, 20)
-        nome = fonte.render(self.nome, True, (255, 255, 255))
-        fundo = nome.get_rect(midbottom=(pos_x + self.largura_sprite // 2, pos_y - 2))
+        nome = fonte.render(self.nome, True, Branco)
+
+        fundo = nome.get_rect(
+            midbottom=(
+                pos_x + self.largura_sprite // 2,
+                pos_y - 2
+            )
+        )
+
         fundo.inflate_ip(8, 4)
-        pygame.draw.rect(tela, (25, 25, 25), fundo, border_radius=4)
-        tela.blit(nome, (fundo.x + 4, fundo.y + 2))
+
+        pygame.draw.rect(
+            tela,
+            Preto,
+            fundo,
+            border_radius=4
+        )
+
+        tela.blit(
+            nome,
+            (fundo.x + 4, fundo.y + 2)
+        )
 
 
 # =========================================================
@@ -799,16 +973,33 @@ class Batalha:
         self.fonte_titulo = pygame.font.Font(None, 44)
 
     def calcular_dano(self, atacante, alvo):
-        ataque = max(0, getattr(atacante, "danototal",
-                                getattr(atacante, "dano", 0)))
-        defesa = max(0, getattr(alvo, "defesatotal",
-                                getattr(alvo, "defesa", 0)))
+        ataque = max(
+            0,
+            getattr(
+                atacante,
+                "danototal",
+                getattr(atacante, "dano", 0)
+            )
+        )
+
+        defesa = max(
+            0,
+            getattr(
+                alvo,
+                "defesatotal",
+                getattr(alvo, "defesa", 0)
+            )
+        )
 
         if ataque <= 0:
             return 0
 
         dano = ataque * ataque / (ataque + defesa)
-        return max(1, int(dano * random.uniform(0.9, 1.1)))
+
+        return max(
+            1,
+            int(dano * random.uniform(0.9, 1.1))
+        )
 
     def verificar_fim(self):
         if self.inimigo.hp <= 0:
@@ -822,12 +1013,16 @@ class Batalha:
             self.jogador.ganhar_xp(
                 self.inimigo.xp_recompensa
             )
-            self.jogador.moedas += self.inimigo.moedas_recompensa
+
+            self.jogador.moedas += (
+                self.inimigo.moedas_recompensa
+            )
 
             self.mensagem = (
                 f"Você venceu! +{self.inimigo.xp_recompensa} XP "
                 f"e +{self.inimigo.moedas_recompensa} moedas."
             )
+
             return True
 
         if self.jogador.hp <= 0:
@@ -837,6 +1032,7 @@ class Batalha:
             self.derrota = True
             self.resultado = "derrota"
             self.mensagem = "Você foi derrotado!"
+
             return True
 
         return False
@@ -847,6 +1043,7 @@ class Batalha:
 
         dano = self.jogador.calcular_dano(self.inimigo)
         self.inimigo.hp -= dano
+
         self.mensagem = f"Você causou {dano} de dano!"
 
         if self.verificar_fim():
@@ -861,6 +1058,7 @@ class Batalha:
 
         self.defendendo = True
         self.mensagem = "Você se preparou para defender!"
+
         self.turno = "inimigo"
         self.turno_inimigo()
 
@@ -868,14 +1066,22 @@ class Batalha:
         if not self.ativa:
             return
 
-        dano = self.calcular_dano(self.inimigo, self.jogador)
+        dano = self.calcular_dano(
+            self.inimigo,
+            self.jogador
+        )
 
         if self.defendendo:
             dano = max(1, dano // 2)
             self.defendendo = False
-            self.mensagem = f"Você defendeu e recebeu {dano} de dano."
+            self.mensagem = (
+                f"Você defendeu e recebeu {dano} de dano."
+            )
+
         else:
-            self.mensagem = f"{self.inimigo.nome} causou {dano} de dano!"
+            self.mensagem = (
+                f"{self.inimigo.nome} causou {dano} de dano!"
+            )
 
         self.jogador.hp -= dano
 
@@ -909,88 +1115,126 @@ class Batalha:
                 self.defender()
 
     def desenhar_barra(
-        self, tela, x, y, largura, altura,
-        hp, hpmaximo, cor
+        self,
+        tela,
+        x,
+        y,
+        largura,
+        altura,
+        hp,
+        hpmaximo,
+        cor
     ):
         pygame.draw.rect(
-            tela, (60, 60, 60),
+            tela,
+            CinzaFraco,
             (x, y, largura, altura)
         )
 
         proporcao = (
             max(0, min(1, hp / hpmaximo))
-            if hpmaximo > 0 else 0
+            if hpmaximo > 0
+            else 0
         )
 
         pygame.draw.rect(
-            tela, cor,
-            (x, y, int(largura * proporcao), altura)
+            tela,
+            cor,
+            (
+                x,
+                y,
+                int(largura * proporcao),
+                altura
+            )
         )
+
         pygame.draw.rect(
-            tela, (255, 255, 255),
-            (x, y, largura, altura), 2
+            tela,
+            Branco,
+            (x, y, largura, altura),
+            2
         )
 
     def desenhar(self, tela):
         largura = tela.get_width()
         altura = tela.get_height()
 
-        tela.fill((30, 45, 65))
+        tela.fill(AzulMeiaNoite)
+
         pygame.draw.rect(
-            tela, (45, 65, 85),
+            tela,
+            AzulArdósiaEscuro,
             (0, altura // 2, largura, altura // 2)
         )
 
         # Painel do inimigo
         pygame.draw.rect(
-            tela, (20, 25, 35),
+            tela,
+            AzulMeiaNoite,
             (largura - 310, 30, 280, 110)
         )
 
         tela.blit(
             self.fonte.render(
-                self.inimigo.nome, True, (255, 255, 255)
+                self.inimigo.nome,
+                True,
+                Branco
             ),
             (largura - 295, 40)
         )
 
         self.desenhar_barra(
-            tela, largura - 295, 80, 250, 20,
-            self.inimigo.hp, self.inimigo.hpmaximo,
-            (210, 55, 55)
+            tela,
+            largura - 295,
+            80,
+            250,
+            20,
+            self.inimigo.hp,
+            self.inimigo.hpmaximo,
+            VermelhoTijolo
         )
 
         tela.blit(
             self.fonte.render(
                 f"HP: {self.inimigo.hp}/{self.inimigo.hpmaximo}",
-                True, (255, 255, 255)
+                True,
+                Branco
             ),
             (largura - 295, 105)
         )
 
         # Painel do jogador
         pygame.draw.rect(
-            tela, (20, 25, 35),
+            tela,
+            AzulMeiaNoite,
             (30, altura - 190, 300, 150)
         )
 
         tela.blit(
             self.fonte.render(
-                self.jogador.nome, True, (255, 255, 255)
+                self.jogador.nome,
+                True,
+                Branco
             ),
             (45, altura - 180)
         )
 
         self.desenhar_barra(
-            tela, 45, altura - 145, 270, 20,
-            self.jogador.hp, self.jogador.hpmaximo,
-            (50, 200, 90)
+            tela,
+            45,
+            altura - 145,
+            270,
+            20,
+            self.jogador.hp,
+            self.jogador.hpmaximo,
+            VerdePrimavera
         )
 
         tela.blit(
             self.fonte.render(
                 f"HP: {self.jogador.hp}/{self.jogador.hpmaximo}",
-                True, (255, 255, 255)
+                True,
+                Branco
             ),
             (45, altura - 115)
         )
@@ -1000,13 +1244,16 @@ class Batalha:
         painel_y = altura - 190
 
         pygame.draw.rect(
-            tela, (20, 25, 35),
+            tela,
+            AzulMeiaNoite,
             (painel_x, painel_y, 280, 150)
         )
 
         tela.blit(
             self.fonte_titulo.render(
-                "COMANDOS", True, (255, 220, 100)
+                "COMANDOS",
+                True,
+                Dourado
             ),
             (painel_x + 15, painel_y + 10)
         )
@@ -1019,28 +1266,34 @@ class Batalha:
             )
 
             cor = (
-                (255, 220, 100)
-                if selecionada else (220, 220, 220)
+                Dourado
+                if selecionada
+                else CinzaPrataClaro
             )
 
             marcador = "> " if selecionada else "  "
 
             tela.blit(
                 self.fonte.render(
-                    marcador + opcao, True, cor
+                    marcador + opcao,
+                    True,
+                    cor
                 ),
                 (painel_x + 20, painel_y + 60 + i * 35)
             )
 
         # Mensagem
         pygame.draw.rect(
-            tela, (20, 25, 35),
+            tela,
+            AzulMeiaNoite,
             (30, 30, min(largura - 60, 500), 55)
         )
 
         tela.blit(
             self.fonte.render(
-                self.mensagem, True, (255, 255, 255)
+                self.mensagem,
+                True,
+                Branco
             ),
             (45, 45)
         )
@@ -1048,16 +1301,22 @@ class Batalha:
         if self.terminada:
             resultado = (
                 "VITÓRIA!"
-                if self.vitoria else "DERROTA!"
+                if self.vitoria
+                else "DERROTA!"
             )
 
             texto = self.fonte_titulo.render(
-                resultado, True, (255, 220, 100)
+                resultado,
+                True,
+                Dourado
             )
 
             tela.blit(
                 texto,
                 texto.get_rect(
-                    center=(largura // 2, altura // 2)
+                    center=(
+                        largura // 2,
+                        altura // 2
+                    )
                 )
             )
