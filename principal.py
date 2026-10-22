@@ -1,3 +1,4 @@
+
 import pygame
 
 from cores import *
@@ -12,6 +13,35 @@ from banco import (
 from inventario import Inventario
 from item import catalogo
 from npc import NPC
+
+
+# =========================================================
+# CORES
+# =========================================================
+
+# Todas as cores utilizadas diretamente neste arquivo.
+# Para mudar uma cor, altere o valor RGB somente aqui.
+
+BRANCO = (255, 255, 255)
+CINZA_ESCURO = (20, 25, 25)
+CINZA_FUNDO = (85, 85, 90)
+CINZA_BORDA = (220, 220, 220)
+CINZA_CLARO = (210, 210, 210)
+CINZA_MINIMAPA_BORDA = (230, 230, 230)
+
+DOURADO = (255, 220, 100)
+DOURADO_LOJA = (190, 170, 100)
+DOURADO_TITULO = (255, 225, 145)
+AMARELO_SELECAO = (255, 225, 100)
+
+VERDE_CLARO = (120, 255, 120)
+VERDE_NPC = (70, 220, 120)
+
+AZUL_JOGADOR = (60, 160, 255)
+VERMELHO_INIMIGO = (235, 55, 55)
+
+MARROM_LOBO = (130, 110, 80)
+CINZA_LOJA = (20, 22, 28)
 
 
 # =========================================================
@@ -111,7 +141,7 @@ inimigos = [
         xp_recompensa=18,
         moedas_recompensa=10,
         chefe=False,
-        cor=(130, 110, 80)
+        cor=MARROM_LOBO
     )
 ]
 
@@ -202,7 +232,7 @@ def desenhar_texto(
     texto,
     x,
     y,
-    cor=(255, 255, 255),
+    cor=BRANCO,
     fonte_usada=None
 ):
     if fonte_usada is None:
@@ -234,7 +264,7 @@ def desenhar_coordenadas():
 
     pygame.draw.rect(
         tela,
-        (20, 25, 25),
+        CINZA_ESCURO,
         (
             painel_x,
             painel_y,
@@ -246,7 +276,7 @@ def desenhar_coordenadas():
 
     pygame.draw.rect(
         tela,
-        (220, 220, 220),
+        CINZA_BORDA,
         (
             painel_x,
             painel_y,
@@ -261,7 +291,7 @@ def desenhar_coordenadas():
         "COORDENADAS",
         painel_x + 10,
         painel_y + 7,
-        (255, 220, 100)
+        DOURADO
     )
 
     desenhar_texto(
@@ -274,7 +304,7 @@ def desenhar_coordenadas():
         f"FPS: {fps}",
         painel_x + 10,
         painel_y + 57,
-        (120, 255, 120)
+        VERDE_CLARO
     )
 
 
@@ -292,7 +322,7 @@ def desenhar_minimapa():
 
     pygame.draw.rect(
         tela,
-        (20, 25, 25),
+        CINZA_ESCURO,
         (
             x_minimapa,
             y_minimapa,
@@ -320,14 +350,14 @@ def desenhar_minimapa():
 
     pygame.draw.rect(
         tela,
-        (85, 85, 90),
+        CINZA_FUNDO,
         area
     )
 
     # Jogador
     pygame.draw.circle(
         tela,
-        (60, 160, 255),
+        AZUL_JOGADOR,
         (
             converter_x(jogador.x),
             converter_y(jogador.y)
@@ -340,7 +370,7 @@ def desenhar_minimapa():
         if not inimigo.derrotado:
             pygame.draw.circle(
                 tela,
-                (235, 55, 55),
+                VERMELHO_INIMIGO,
                 (
                     converter_x(inimigo.x),
                     converter_y(inimigo.y)
@@ -352,7 +382,7 @@ def desenhar_minimapa():
     for npc in npcs:
         pygame.draw.circle(
             tela,
-            (70, 220, 120),
+            VERDE_NPC,
             (
                 converter_x(npc.x),
                 converter_y(npc.y)
@@ -362,7 +392,7 @@ def desenhar_minimapa():
 
     pygame.draw.rect(
         tela,
-        (230, 230, 230),
+        CINZA_MINIMAPA_BORDA,
         (
             x_minimapa,
             y_minimapa,
@@ -379,7 +409,7 @@ def desenhar_minimapa():
 # =========================================================
 
 def desenhar_mundo(camera_x, camera_y):
-    tela.fill((85, 85, 90))
+    tela.fill(CINZA_FUNDO)
 
     # Inimigos
     for inimigo in inimigos:
@@ -409,7 +439,7 @@ def desenhar_mundo(camera_x, camera_y):
     # HUD
     pygame.draw.rect(
         tela,
-        (20, 25, 25),
+        CINZA_ESCURO,
         (8, ALTURA_TELA - 63, 340, 54),
         border_radius=6
     )
@@ -441,14 +471,14 @@ def desenhar_mundo(camera_x, camera_y):
 def desenhar_loja():
     pygame.draw.rect(
         tela,
-        (20, 22, 28),
+        CINZA_LOJA,
         (90, 55, 620, 490),
         border_radius=10
     )
 
     pygame.draw.rect(
         tela,
-        (190, 170, 100),
+        DOURADO_LOJA,
         (90, 55, 620, 490),
         3,
         border_radius=10
@@ -458,7 +488,7 @@ def desenhar_loja():
         "LOJA",
         120,
         75,
-        (255, 225, 145),
+        DOURADO_TITULO,
         fonte_grande
     )
 
@@ -475,9 +505,9 @@ def desenhar_loja():
             continue
 
         cor = (
-            (255, 225, 100)
+            AMARELO_SELECAO
             if i == loja_cursor
-            else (240, 240, 240)
+            else BRANCO
         )
 
         prefixo = "> " if i == loja_cursor else "  "
@@ -493,7 +523,7 @@ def desenhar_loja():
         "ENTER/Z comprar | ESC fechar",
         120,
         500,
-        (210, 210, 210)
+        CINZA_CLARO
     )
 
 
