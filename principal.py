@@ -1,4 +1,3 @@
-
 import pygame
 
 from cores import *
@@ -12,6 +11,8 @@ from banco import (
 )
 from inventario import Inventario
 from item import catalogo
+from npc import NPC
+
 
 # =========================================================
 # INICIALIZAÇÃO
@@ -33,6 +34,7 @@ fonte_grande = pygame.font.Font(None, 34)
 
 criar_banco()
 
+
 # =========================================================
 # MAPA
 # =========================================================
@@ -40,6 +42,7 @@ criar_banco()
 mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
+
 
 # =========================================================
 # JOGADOR E INVENTÁRIO
@@ -61,11 +64,13 @@ jogador.adicionar_item("pedra_afiacao", 1)
 inventario = Inventario()
 inventario.sincronizar_do_personagem(jogador)
 
+
 # =========================================================
 # COLISÕES
 # =========================================================
 
 objetos_colisao = []
+
 
 # =========================================================
 # CARREGAR PARTIDA
@@ -90,6 +95,7 @@ else:
             round(jogador.y)
         )
 
+
 # =========================================================
 # INIMIGOS
 # =========================================================
@@ -109,11 +115,50 @@ inimigos = [
     )
 ]
 
+
+# =========================================================
+# NPCs
+# =========================================================
+
+npcs = [
+    NPC(
+        nome="Morador",
+        x=300,
+        y=300,
+        dialogos=[
+            "Ola, viajante!",
+            "Cuidado com os lobos desta regiao.",
+            "Boa sorte na sua jornada!"
+        ],
+        sprite=None,
+        tem_loja=False,
+        pode_andar=True,
+        velocidade=45,
+        distancia_maxima=120
+    ),
+
+    NPC(
+        nome="Vendedor",
+        x=450,
+        y=300,
+        dialogos=[
+            "Bem-vindo a minha loja!",
+            "Tenho equipamentos para sua aventura.",
+            "Ate mais!"
+        ],
+        sprite=None,
+        tem_loja=True,
+        pode_andar=False
+    )
+]
+
+
 # =========================================================
 # ESTADO DO JOGO
 # =========================================================
 
 batalha = None
+npc_dialogo_atual = None
 
 loja_aberta = False
 loja_cursor = 0
@@ -131,6 +176,7 @@ itens_loja = [
     ("armadura_ferro", 90),
 ]
 
+
 # =========================================================
 # SALVAMENTO
 # =========================================================
@@ -146,6 +192,7 @@ def salvar_jogo():
     )
 
     salvar_posicao(jogador.x, jogador.y)
+
 
 # =========================================================
 # TEXTO
@@ -169,6 +216,7 @@ def desenhar_texto(
 
     tela.blit(imagem, (x, y))
 
+
 # =========================================================
 # COORDENADAS E FPS
 # =========================================================
@@ -181,7 +229,6 @@ def desenhar_coordenadas():
     largura_painel = 170
     altura_painel = 90
 
-    # Canto superior esquerdo, separado do minimapa.
     painel_x = 10
     painel_y = 10
 
@@ -230,6 +277,7 @@ def desenhar_coordenadas():
         (120, 255, 120)
     )
 
+
 # =========================================================
 # MINIMAPA
 # =========================================================
@@ -270,14 +318,13 @@ def desenhar_minimapa():
     def converter_y(valor):
         return area.y + round(valor * escala_y)
 
-    # Representação neutra do mapa.
     pygame.draw.rect(
         tela,
         (85, 85, 90),
         area
     )
 
-    # Jogador.
+    # Jogador
     pygame.draw.circle(
         tela,
         (60, 160, 255),
@@ -288,7 +335,7 @@ def desenhar_minimapa():
         4
     )
 
-    # Inimigos.
+    # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
             pygame.draw.circle(
@@ -300,6 +347,18 @@ def desenhar_minimapa():
                 ),
                 3
             )
+
+    # NPCs
+    for npc in npcs:
+        pygame.draw.circle(
+            tela,
+            (70, 220, 120),
+            (
+                converter_x(npc.x),
+                converter_y(npc.y)
+            ),
+            3
+        )
 
     pygame.draw.rect(
         tela,
@@ -314,6 +373,7 @@ def desenhar_minimapa():
         border_radius=5
     )
 
+
 # =========================================================
 # DESENHAR O MUNDO
 # =========================================================
@@ -321,15 +381,32 @@ def desenhar_minimapa():
 def desenhar_mundo(camera_x, camera_y):
     tela.fill((85, 85, 90))
 
-    # Inimigos.
+    # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
-            inimigo.desenhar(tela, camera_x, camera_y)
+            inimigo.desenhar(
+                tela,
+                camera_x,
+                camera_y
+            )
 
-    # Jogador.
-    jogador.desenhar(tela, camera_x, camera_y)
+    # NPCs
+    for npc in npcs:
+        npc.desenhar(
+            tela,
+            camera_x,
+            camera_y,
+            jogador
+        )
 
-    # HUD.
+    # Jogador
+    jogador.desenhar(
+        tela,
+        camera_x,
+        camera_y
+    )
+
+    # HUD
     pygame.draw.rect(
         tela,
         (20, 25, 25),
@@ -351,12 +428,11 @@ def desenhar_mundo(camera_x, camera_y):
         ALTURA_TELA - 32
     )
 
-    # Primeiro desenha o minimapa.
     desenhar_minimapa()
 
-    # Depois desenha o painel por cima do cenário.
     if mostrar_coordenadas:
         desenhar_coordenadas()
+
 
 # =========================================================
 # LOJA
@@ -420,6 +496,7 @@ def desenhar_loja():
         (210, 210, 210)
     )
 
+
 # =========================================================
 # LOOP PRINCIPAL
 # =========================================================
@@ -433,6 +510,10 @@ while rodando:
 
         if evento.type == pygame.QUIT:
             rodando = False
+
+        # -------------------------------------------------
+        # BATALHA
+        # -------------------------------------------------
 
         elif batalha is not None:
             batalha.processar_evento(evento)
@@ -454,23 +535,55 @@ while rodando:
                 batalha = None
                 salvar_jogo()
 
+        # -------------------------------------------------
+        # DIÁLOGO DO NPC
+        # -------------------------------------------------
+
+        elif (
+            npc_dialogo_atual is not None
+            and npc_dialogo_atual.dialogo_aberto
+        ):
+            npc_dialogo_atual.processar_evento(evento)
+
+            if not npc_dialogo_atual.dialogo_aberto:
+                if npc_dialogo_atual.tem_loja:
+                    loja_aberta = True
+
+                npc_dialogo_atual = None
+
+        # -------------------------------------------------
+        # LOJA
+        # -------------------------------------------------
+
         elif loja_aberta:
             if evento.type == pygame.KEYDOWN:
 
-                if evento.key in (pygame.K_ESCAPE, pygame.K_l):
+                if evento.key in (
+                    pygame.K_ESCAPE,
+                    pygame.K_l
+                ):
                     loja_aberta = False
 
-                elif evento.key in (pygame.K_UP, pygame.K_w):
+                elif evento.key in (
+                    pygame.K_UP,
+                    pygame.K_w
+                ):
                     loja_cursor = (
                         loja_cursor - 1
                     ) % len(itens_loja)
 
-                elif evento.key in (pygame.K_DOWN, pygame.K_s):
+                elif evento.key in (
+                    pygame.K_DOWN,
+                    pygame.K_s
+                ):
                     loja_cursor = (
                         loja_cursor + 1
                     ) % len(itens_loja)
 
-                elif evento.key in (pygame.K_RETURN, pygame.K_z):
+                elif evento.key in (
+                    pygame.K_RETURN,
+                    pygame.K_z
+                ):
                     item_id, preco = itens_loja[loja_cursor]
 
                     if jogador.moedas >= preco:
@@ -486,11 +599,19 @@ while rodando:
 
                             salvar_jogo()
 
+        # -------------------------------------------------
+        # INVENTÁRIO
+        # -------------------------------------------------
+
         elif inventario.aberto:
             if inventario.tratar_evento(evento, jogador):
                 inventario.sincronizar_para_personagem(
                     jogador
                 )
+
+        # -------------------------------------------------
+        # EVENTOS GERAIS
+        # -------------------------------------------------
 
         elif evento.type == pygame.KEYDOWN:
 
@@ -512,8 +633,16 @@ while rodando:
             elif evento.key == pygame.K_l:
                 loja_aberta = True
 
+            # Interação com NPC usando ESPAÇO
+            elif evento.key == pygame.K_SPACE:
+                for npc in npcs:
+                    if npc.perto_do_jogador(jogador):
+                        if npc.interagir(jogador):
+                            npc_dialogo_atual = npc
+                            break
+
     # =====================================================
-    # ATUALIZAR JOGADOR E ENCONTRO
+    # ATUALIZAR JOGADOR, NPCs E ENCONTROS
     # =====================================================
 
     if (
@@ -521,7 +650,21 @@ while rodando:
         and batalha is None
         and not loja_aberta
         and not inventario.aberto
+        and npc_dialogo_atual is None
     ):
+        # Atualiza a movimentação dos NPCs
+        for npc in npcs:
+            npc.atualizar(
+                dt * 1000,
+                obstaculos=objetos_colisao,
+                outros_npcs=npcs,
+                limites_mundo=(
+                    mapa_largura,
+                    mapa_altura
+                )
+            )
+
+        # Atualiza o jogador
         jogador.atualizar(
             pygame.key.get_pressed(),
             dt,
@@ -530,13 +673,18 @@ while rodando:
             mapa_altura
         )
 
-        # Inicia a batalha ao encostar no inimigo.
+        # Inicia a batalha ao encostar no inimigo
         for inimigo in inimigos:
             if (
                 not inimigo.derrotado
-                and jogador.colisao.colliderect(inimigo.colisao)
+                and jogador.colisao.colliderect(
+                    inimigo.colisao
+                )
             ):
-                batalha = Batalha(jogador, inimigo)
+                batalha = Batalha(
+                    jogador,
+                    inimigo
+                )
                 break
 
     # =====================================================
@@ -567,14 +715,29 @@ while rodando:
         batalha.desenhar(tela)
 
     else:
-        desenhar_mundo(camera_x, camera_y)
+        desenhar_mundo(
+            camera_x,
+            camera_y
+        )
 
         if loja_aberta:
             desenhar_loja()
-        else:
-            inventario.desenhar(tela, jogador)
+
+        elif inventario.aberto:
+            inventario.desenhar(
+                tela,
+                jogador
+            )
+
+        # Caixa de diálogo do NPC
+        if (
+            npc_dialogo_atual is not None
+            and npc_dialogo_atual.dialogo_aberto
+        ):
+            npc_dialogo_atual.desenhar_dialogo(tela)
 
     pygame.display.flip()
+
 
 # =========================================================
 # ENCERRAMENTO
