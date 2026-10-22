@@ -141,7 +141,12 @@ inimigos = [
         xp_recompensa=18,
         moedas_recompensa=10,
         chefe=False,
-        cor=MARROM_LOBO
+        cor=MARROM_LOBO,
+        sprite="d1.png",
+        tamanho_sprite=(64, 64),
+        velocidade_movimento=45,
+        distancia_maxima=150,
+        pode_andar=True
     )
 ]
 
@@ -156,11 +161,14 @@ npcs = [
         x=300,
         y=300,
         dialogos=[
-            "Ola, viajante!",
-            "Cuidado com os lobos desta regiao.",
-            "Boa sorte na sua jornada!"
+            "Ah, que bom encontrar alguém por aqui!",
+            "Tenho visto lobos rondando a estrada. É melhor ficar atento.",
+            "Se estiver ferido, volte ao vilarejo para se recuperar.",
+            "Boa sorte na viagem. Que os deuses estejam com você!"
         ],
-        sprite=None,
+        sprite="sprite principal/F1.png",
+        tamanho_sprite=(64, 64),
+        colisao_tamanho=(36, 30),
         tem_loja=False,
         pode_andar=True,
         velocidade=45,
@@ -172,11 +180,14 @@ npcs = [
         x=450,
         y=300,
         dialogos=[
-            "Bem-vindo a minha loja!",
-            "Tenho equipamentos para sua aventura.",
-            "Ate mais!"
+            "Olá! Entre, fique à vontade.",
+            "Tenho poções e equipamentos para quem vai se aventurar.",
+            "Dê uma olhada nas mercadorias. Talvez encontre algo útil.",
+            "Obrigado pela visita. Volte quando precisar!"
         ],
-        sprite=None,
+        sprite="sprite principal/F1.png",
+        tamanho_sprite=(64, 64),
+        colisao_tamanho=(36, 30),
         tem_loja=True,
         pode_andar=False
     )
@@ -682,23 +693,54 @@ while rodando:
         and not inventario.aberto
         and npc_dialogo_atual is None
     ):
-        # Atualiza a movimentação dos NPCs
+        # NPCs não podem atravessar paredes, o jogador ou inimigos.
+        retangulos_inimigos = [
+            inimigo.colisao
+            for inimigo in inimigos
+            if not inimigo.derrotado
+        ]
+
+        obstaculos_npc = (
+            list(objetos_colisao)
+            + [jogador.colisao]
+            + retangulos_inimigos
+        )
+
         for npc in npcs:
             npc.atualizar(
                 dt * 1000,
-                obstaculos=objetos_colisao,
+                obstaculos=obstaculos_npc,
                 outros_npcs=npcs,
-                limites_mundo=(
-                    mapa_largura,
-                    mapa_altura
-                )
+                limites_mundo=(mapa_largura, mapa_altura)
             )
 
-        # Atualiza o jogador
+        # Inimigos patrulham o mapa e respeitam paredes e NPCs.
+        # Eles podem encostar no jogador para iniciar uma batalha.
+        retangulos_npc = [npc.colisao for npc in npcs]
+
+        for inimigo in inimigos:
+            if inimigo.derrotado:
+                continue
+
+            inimigo.atualizar(
+                dt * 1000,
+                obstaculos=list(objetos_colisao) + retangulos_npc,
+                outros_inimigos=inimigos,
+                limites_mundo=(mapa_largura, mapa_altura),
+                jogador=jogador
+            )
+
+        # O jogador colide com NPCs, mas continua podendo tocar
+        # nos inimigos para iniciar o combate.
+        obstaculos_jogador = (
+            list(objetos_colisao)
+            + [npc.colisao for npc in npcs]
+        )
+
         jogador.atualizar(
             pygame.key.get_pressed(),
             dt,
-            objetos_colisao,
+            obstaculos_jogador,
             mapa_largura,
             mapa_altura
         )
