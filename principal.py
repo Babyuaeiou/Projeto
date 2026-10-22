@@ -1,4 +1,3 @@
-
 import pygame
 
 from cores import *
@@ -16,35 +15,6 @@ from npc import NPC
 
 
 # =========================================================
-# CORES
-# =========================================================
-
-# Todas as cores utilizadas diretamente neste arquivo.
-# Para mudar uma cor, altere o valor RGB somente aqui.
-
-BRANCO = (255, 255, 255)
-CINZA_ESCURO = (20, 25, 25)
-CINZA_FUNDO = (85, 85, 90)
-CINZA_BORDA = (220, 220, 220)
-CINZA_CLARO = (210, 210, 210)
-CINZA_MINIMAPA_BORDA = (230, 230, 230)
-
-DOURADO = (255, 220, 100)
-DOURADO_LOJA = (190, 170, 100)
-DOURADO_TITULO = (255, 225, 145)
-AMARELO_SELECAO = (255, 225, 100)
-
-VERDE_CLARO = (120, 255, 120)
-VERDE_NPC = (70, 220, 120)
-
-AZUL_JOGADOR = (60, 160, 255)
-VERMELHO_INIMIGO = (235, 55, 55)
-
-MARROM_LOBO = (130, 110, 80)
-CINZA_LOJA = (20, 22, 28)
-
-
-# =========================================================
 # INICIALIZAÇÃO
 # =========================================================
 
@@ -53,12 +23,10 @@ pygame.init()
 LARGURA_TELA = 800
 ALTURA_TELA = 600
 
-tela = pygame.display.set_mode(
-    (LARGURA_TELA, ALTURA_TELA)
-)
+tela = pygame.display.set_mode((LARGURA_TELA, ALTURA_TELA))
 pygame.display.set_caption("Hunt Bird")
 
-clock = pygame.time.Clock()
+relogio = pygame.time.Clock()
 fonte = pygame.font.Font(None, 24)
 fonte_grande = pygame.font.Font(None, 34)
 
@@ -73,9 +41,16 @@ mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
 
+# Cada retângulo representa uma área sólida do mapa.
+# Adicione outros pygame.Rect(...) para criar mais obstáculos.
+objetos_colisao = [
+    pygame.Rect(600, 400, 180, 50),
+    pygame.Rect(900, 700, 60, 220),
+]
+
 
 # =========================================================
-# JOGADOR E INVENTÁRIO
+# JOGADOR
 # =========================================================
 
 jogador = Personagem(
@@ -88,42 +63,32 @@ jogador.equipamentos["arma"] = "punhos"
 jogador.equipamentos["armadura"] = None
 jogador.recalcular_atributos()
 
-jogador.adicionar_item("pocao_pequena", 2)
-jogador.adicionar_item("pedra_afiacao", 1)
-
 inventario = Inventario()
-inventario.sincronizar_do_personagem(jogador)
 
-
-# =========================================================
-# COLISÕES
-# =========================================================
-
-objetos_colisao = []
-
-
-# =========================================================
-# CARREGAR PARTIDA
-# =========================================================
-
-dados = carregar_partida(
+# Itens iniciais só são adicionados em uma partida nova.
+dados_salvos = carregar_partida(
     jogador,
     inventario,
     mapa_atual
 )
 
-if dados:
-    mapa_atual = dados["mapa_atual"]
-
+if dados_salvos:
+    mapa_atual = dados_salvos["mapa_atual"]
 else:
-    posicao = carregar_posicao()
+    jogador.adicionar_item("pocao_pequena", 2)
+    jogador.adicionar_item("pedra_afiacao", 1)
 
-    if posicao:
-        jogador.x, jogador.y = posicao
-        jogador.colisao.topleft = (
-            round(jogador.x),
-            round(jogador.y)
-        )
+    posicao_salva = carregar_posicao()
+
+    if posicao_salva:
+        jogador.x, jogador.y = posicao_salva
+
+    jogador.colisao.topleft = (
+        round(jogador.x),
+        round(jogador.y)
+    )
+
+inventario.sincronizar_do_personagem(jogador)
 
 
 # =========================================================
@@ -141,13 +106,31 @@ inimigos = [
         xp_recompensa=18,
         moedas_recompensa=10,
         chefe=False,
-        cor=MARROM_LOBO,
+        cor=MarromSela,
         sprite="d1.png",
         tamanho_sprite=(64, 64),
         velocidade_movimento=45,
         distancia_maxima=150,
         pode_andar=True
-    )
+    ),
+
+    Inimigo(
+        nome="Goblin",
+        hpmaximo=16,
+        dano=4,
+        defesa=1,
+        x=1200,
+        y=850,
+        xp_recompensa=12,
+        moedas_recompensa=7,
+        chefe=False,
+        cor=VerdePrimavera,
+        sprite="e1.png",
+        tamanho_sprite=(64, 64),
+        velocidade_movimento=35,
+        distancia_maxima=120,
+        pode_andar=True
+    ),
 ]
 
 
@@ -161,18 +144,17 @@ npcs = [
         x=300,
         y=300,
         dialogos=[
-            "Ah, que bom encontrar alguém por aqui!",
-            "Tenho visto lobos rondando a estrada. É melhor ficar atento.",
-            "Se estiver ferido, volte ao vilarejo para se recuperar.",
-            "Boa sorte na viagem. Que os deuses estejam com você!"
+            "Que bom encontrar alguém por aqui!",
+            "Tenho visto lobos rondando a estrada.",
+            "Tome cuidado quando entrar na floresta.",
+            "Boa sorte na sua jornada!"
         ],
-        sprite="sprite principal/F1.png",
-        tamanho_sprite=(64, 64),
-        colisao_tamanho=(36, 30),
+        sprite=None,
         tem_loja=False,
         pode_andar=True,
-        velocidade=45,
-        distancia_maxima=120
+        velocidade=35,
+        distancia_maxima=100,
+        cor=VerdePrimavera
     ),
 
     NPC(
@@ -180,17 +162,15 @@ npcs = [
         x=450,
         y=300,
         dialogos=[
-            "Olá! Entre, fique à vontade.",
-            "Tenho poções e equipamentos para quem vai se aventurar.",
-            "Dê uma olhada nas mercadorias. Talvez encontre algo útil.",
-            "Obrigado pela visita. Volte quando precisar!"
+            "Bem-vindo à minha loja!",
+            "Tenho poções e equipamentos para vender.",
+            "Use as setas para escolher uma mercadoria."
         ],
-        sprite="sprite principal/F1.png",
-        tamanho_sprite=(64, 64),
-        colisao_tamanho=(36, 30),
+        sprite=None,
         tem_loja=True,
-        pode_andar=False
-    )
+        pode_andar=False,
+        cor=Dourado
+    ),
 ]
 
 
@@ -203,7 +183,6 @@ npc_dialogo_atual = None
 
 loja_aberta = False
 loja_cursor = 0
-
 mostrar_coordenadas = False
 
 itens_loja = [
@@ -216,6 +195,23 @@ itens_loja = [
     ("espada_ferro", 80),
     ("armadura_ferro", 90),
 ]
+
+
+# =========================================================
+# TEXTO
+# =========================================================
+
+def desenhar_texto(texto, x, y, cor=Branco, fonte_usada=None):
+    if fonte_usada is None:
+        fonte_usada = fonte
+
+    imagem = fonte_usada.render(
+        str(texto),
+        True,
+        cor
+    )
+
+    tela.blit(imagem, (x, y))
 
 
 # =========================================================
@@ -236,86 +232,34 @@ def salvar_jogo():
 
 
 # =========================================================
-# TEXTO
-# =========================================================
-
-def desenhar_texto(
-    texto,
-    x,
-    y,
-    cor=BRANCO,
-    fonte_usada=None
-):
-    if fonte_usada is None:
-        fonte_usada = fonte
-
-    imagem = fonte_usada.render(
-        str(texto),
-        True,
-        cor
-    )
-
-    tela.blit(imagem, (x, y))
-
-
-# =========================================================
-# COORDENADAS E FPS
+# COORDENADAS
 # =========================================================
 
 def desenhar_coordenadas():
-    x = int(jogador.x)
-    y = int(jogador.y)
-    fps = int(clock.get_fps())
-
-    largura_painel = 170
-    altura_painel = 90
-
-    painel_x = 10
-    painel_y = 10
-
     pygame.draw.rect(
         tela,
-        CINZA_ESCURO,
-        (
-            painel_x,
-            painel_y,
-            largura_painel,
-            altura_painel
-        ),
-        border_radius=6
-    )
-
-    pygame.draw.rect(
-        tela,
-        CINZA_BORDA,
-        (
-            painel_x,
-            painel_y,
-            largura_painel,
-            altura_painel
-        ),
-        1,
+        AzulMeiaNoite,
+        (10, 10, 175, 85),
         border_radius=6
     )
 
     desenhar_texto(
         "COORDENADAS",
-        painel_x + 10,
-        painel_y + 7,
-        DOURADO
+        20,
+        17,
+        Dourado
     )
 
     desenhar_texto(
-        f"X: {x}  Y: {y}",
-        painel_x + 10,
-        painel_y + 32
+        f"X: {int(jogador.x)}",
+        20,
+        42
     )
 
     desenhar_texto(
-        f"FPS: {fps}",
-        painel_x + 10,
-        painel_y + 57,
-        VERDE_CLARO
+        f"Y: {int(jogador.y)}",
+        20,
+        64
     )
 
 
@@ -324,68 +268,64 @@ def desenhar_coordenadas():
 # =========================================================
 
 def desenhar_minimapa():
-    largura_minimapa = 180
-    altura_minimapa = 135
+    largura = 180
+    altura = 135
     margem = 10
 
-    x_minimapa = LARGURA_TELA - largura_minimapa - margem
-    y_minimapa = margem
+    x = LARGURA_TELA - largura - margem
+    y = margem
+
+    area = pygame.Rect(
+        x + 3,
+        y + 3,
+        largura - 6,
+        altura - 6
+    )
 
     pygame.draw.rect(
         tela,
-        CINZA_ESCURO,
-        (
-            x_minimapa,
-            y_minimapa,
-            largura_minimapa,
-            altura_minimapa
-        ),
+        AzulMeiaNoite,
+        (x, y, largura, altura),
         border_radius=5
     )
 
-    area = pygame.Rect(
-        x_minimapa + 3,
-        y_minimapa + 3,
-        largura_minimapa - 6,
-        altura_minimapa - 6
+    pygame.draw.rect(
+        tela,
+        CinzaArdósiaEscuro,
+        area
     )
 
     escala_x = area.width / mapa_largura
     escala_y = area.height / mapa_altura
 
-    def converter_x(valor):
-        return area.x + round(valor * escala_x)
+    def posicao_minimapa(px, py):
+        return (
+            area.x + round(px * escala_x),
+            area.y + round(py * escala_y)
+        )
 
-    def converter_y(valor):
-        return area.y + round(valor * escala_y)
+    # Obstáculos
+    for obstaculo in objetos_colisao:
+        obstaculo_mapa = pygame.Rect(
+            area.x + round(obstaculo.x * escala_x),
+            area.y + round(obstaculo.y * escala_y),
+            max(1, round(obstaculo.width * escala_x)),
+            max(1, round(obstaculo.height * escala_y))
+        )
 
-    pygame.draw.rect(
-        tela,
-        CINZA_FUNDO,
-        area
-    )
-
-    # Jogador
-    pygame.draw.circle(
-        tela,
-        AZUL_JOGADOR,
-        (
-            converter_x(jogador.x),
-            converter_y(jogador.y)
-        ),
-        4
-    )
+        pygame.draw.rect(
+            tela,
+            CinzaClaro,
+            obstaculo_mapa
+        )
 
     # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
             pygame.draw.circle(
                 tela,
-                VERMELHO_INIMIGO,
-                (
-                    converter_x(inimigo.x),
-                    converter_y(inimigo.y)
-                ),
+                VermelhoTijolo,
+                posicao_minimapa(inimigo.x, inimigo.y),
                 3
             )
 
@@ -393,34 +333,49 @@ def desenhar_minimapa():
     for npc in npcs:
         pygame.draw.circle(
             tela,
-            VERDE_NPC,
-            (
-                converter_x(npc.x),
-                converter_y(npc.y)
-            ),
+            VerdePrimavera,
+            posicao_minimapa(npc.x, npc.y),
             3
         )
 
+    # Jogador
+    pygame.draw.circle(
+        tela,
+        AzulDodger,
+        posicao_minimapa(jogador.x, jogador.y),
+        4
+    )
+
     pygame.draw.rect(
         tela,
-        CINZA_MINIMAPA_BORDA,
-        (
-            x_minimapa,
-            y_minimapa,
-            largura_minimapa,
-            altura_minimapa
-        ),
+        CinzaPrataClaro,
+        (x, y, largura, altura),
         2,
         border_radius=5
     )
 
 
 # =========================================================
-# DESENHAR O MUNDO
+# DESENHAR O MAPA
 # =========================================================
 
 def desenhar_mundo(camera_x, camera_y):
-    tela.fill(CINZA_FUNDO)
+    tela.fill(VerdeMar)
+
+    # Obstáculos
+    for obstaculo in objetos_colisao:
+        obstaculo_tela = pygame.Rect(
+            round(obstaculo.x - camera_x),
+            round(obstaculo.y - camera_y),
+            obstaculo.width,
+            obstaculo.height
+        )
+
+        pygame.draw.rect(
+            tela,
+            VerdeFloresta,
+            obstaculo_tela
+        )
 
     # Inimigos
     for inimigo in inimigos:
@@ -447,18 +402,18 @@ def desenhar_mundo(camera_x, camera_y):
         camera_y
     )
 
-    # HUD
+    # HUD do jogador
     pygame.draw.rect(
         tela,
-        CINZA_ESCURO,
-        (8, ALTURA_TELA - 63, 340, 54),
+        AzulMeiaNoite,
+        (8, ALTURA_TELA - 65, 360, 57),
         border_radius=6
     )
 
     desenhar_texto(
-        f"Nv. {jogador.nivel}  HP {jogador.hp}/{jogador.hpmaximo}",
+        f"Nível {jogador.nivel}  HP {jogador.hp}/{jogador.hpmaximo}",
         18,
-        ALTURA_TELA - 56
+        ALTURA_TELA - 57
     )
 
     desenhar_texto(
@@ -466,7 +421,8 @@ def desenhar_mundo(camera_x, camera_y):
         f"Defesa {jogador.defesatotal}  "
         f"Moedas {jogador.moedas}",
         18,
-        ALTURA_TELA - 32
+        ALTURA_TELA - 32,
+        Dourado
     )
 
     desenhar_minimapa()
@@ -482,14 +438,14 @@ def desenhar_mundo(camera_x, camera_y):
 def desenhar_loja():
     pygame.draw.rect(
         tela,
-        CINZA_LOJA,
+        AzulMeiaNoite,
         (90, 55, 620, 490),
         border_radius=10
     )
 
     pygame.draw.rect(
         tela,
-        DOURADO_LOJA,
+        Dourado,
         (90, 55, 620, 490),
         3,
         border_radius=10
@@ -499,7 +455,7 @@ def desenhar_loja():
         "LOJA",
         120,
         75,
-        DOURADO_TITULO,
+        Dourado,
         fonte_grande
     )
 
@@ -509,43 +465,83 @@ def desenhar_loja():
         115
     )
 
-    for i, (item_id, preco) in enumerate(itens_loja):
+    for indice, (item_id, preco) in enumerate(itens_loja):
         item = catalogo.obter(item_id)
 
         if item is None:
             continue
 
-        cor = (
-            AMARELO_SELECAO
-            if i == loja_cursor
-            else BRANCO
-        )
+        cor_texto = Branco
 
-        prefixo = "> " if i == loja_cursor else "  "
+        if indice == loja_cursor:
+            cor_texto = Dourado
+
+        prefixo = "> " if indice == loja_cursor else "  "
 
         desenhar_texto(
             f"{prefixo}{item.nome} - {preco} moedas",
             130,
-            160 + i * 35,
-            cor
+            155 + indice * 35,
+            cor_texto
         )
 
     desenhar_texto(
-        "ENTER/Z comprar | ESC fechar",
+        "ENTER ou Z: comprar | ESC: fechar",
         120,
         500,
-        CINZA_CLARO
+        CinzaClaro
     )
 
 
+def comprar_item():
+    item_id, preco = itens_loja[loja_cursor]
+    item = catalogo.obter(item_id)
+
+    if item is None:
+        return
+
+    if jogador.moedas < preco:
+        return
+
+    jogador.moedas -= preco
+    jogador.adicionar_item(item_id, 1)
+
+    inventario.sincronizar_do_personagem(jogador)
+    salvar_jogo()
+
+
 # =========================================================
-# LOOP PRINCIPAL
+# CÂMERA
+# =========================================================
+
+def calcular_camera():
+    camera_x = max(
+        0,
+        min(
+            mapa_largura - LARGURA_TELA,
+            jogador.x - LARGURA_TELA // 2
+        )
+    )
+
+    camera_y = max(
+        0,
+        min(
+            mapa_altura - ALTURA_TELA,
+            jogador.y - ALTURA_TELA // 2
+        )
+    )
+
+    return camera_x, camera_y
+
+
+# =========================================================
+# EVENTOS
 # =========================================================
 
 rodando = True
 
 while rodando:
-    dt = min(clock.tick(60) / 1000, 0.05)
+    dt = min(relogio.tick(60) / 1000, 0.05)
 
     for evento in pygame.event.get():
 
@@ -563,6 +559,14 @@ while rodando:
                 if batalha.vitoria:
                     batalha.inimigo.derrotado = True
 
+                    jogador.ganhar_xp(
+                        batalha.inimigo.xp_recompensa
+                    )
+
+                    jogador.moedas += (
+                        batalha.inimigo.moedas_recompensa
+                    )
+
                 elif batalha.derrota:
                     jogador.hp = jogador.hpmaximo
                     jogador.x = 650
@@ -577,7 +581,7 @@ while rodando:
                 salvar_jogo()
 
         # -------------------------------------------------
-        # DIÁLOGO DO NPC
+        # DIÁLOGO
         # -------------------------------------------------
 
         elif (
@@ -625,20 +629,7 @@ while rodando:
                     pygame.K_RETURN,
                     pygame.K_z
                 ):
-                    item_id, preco = itens_loja[loja_cursor]
-
-                    if jogador.moedas >= preco:
-                        item = catalogo.obter(item_id)
-
-                        if item is not None:
-                            jogador.moedas -= preco
-                            jogador.adicionar_item(item_id, 1)
-
-                            inventario.sincronizar_para_personagem(
-                                jogador
-                            )
-
-                            salvar_jogo()
+                    comprar_item()
 
         # -------------------------------------------------
         # INVENTÁRIO
@@ -674,7 +665,6 @@ while rodando:
             elif evento.key == pygame.K_l:
                 loja_aberta = True
 
-            # Interação com NPC usando ESPAÇO
             elif evento.key == pygame.K_SPACE:
                 for npc in npcs:
                     if npc.perto_do_jogador(jogador):
@@ -683,7 +673,7 @@ while rodando:
                             break
 
     # =====================================================
-    # ATUALIZAR JOGADOR, NPCs E ENCONTROS
+    # ATUALIZAÇÃO DO MUNDO
     # =====================================================
 
     if (
@@ -693,13 +683,13 @@ while rodando:
         and not inventario.aberto
         and npc_dialogo_atual is None
     ):
-        # NPCs não podem atravessar paredes, o jogador ou inimigos.
         retangulos_inimigos = [
             inimigo.colisao
             for inimigo in inimigos
             if not inimigo.derrotado
         ]
 
+        # Atualiza NPCs e impede que atravessem obstáculos.
         obstaculos_npc = (
             list(objetos_colisao)
             + [jogador.colisao]
@@ -714,9 +704,11 @@ while rodando:
                 limites_mundo=(mapa_largura, mapa_altura)
             )
 
-        # Inimigos patrulham o mapa e respeitam paredes e NPCs.
-        # Eles podem encostar no jogador para iniciar uma batalha.
-        retangulos_npc = [npc.colisao for npc in npcs]
+        # Atualiza inimigos.
+        retangulos_npc = [
+            npc.colisao
+            for npc in npcs
+        ]
 
         for inimigo in inimigos:
             if inimigo.derrotado:
@@ -724,14 +716,17 @@ while rodando:
 
             inimigo.atualizar(
                 dt * 1000,
-                obstaculos=list(objetos_colisao) + retangulos_npc,
+                obstaculos=(
+                    list(objetos_colisao)
+                    + retangulos_npc
+                ),
                 outros_inimigos=inimigos,
                 limites_mundo=(mapa_largura, mapa_altura),
                 jogador=jogador
             )
 
-        # O jogador colide com NPCs, mas continua podendo tocar
-        # nos inimigos para iniciar o combate.
+        # O jogador colide com paredes e NPCs.
+        # O contato com inimigos inicia uma batalha.
         obstaculos_jogador = (
             list(objetos_colisao)
             + [npc.colisao for npc in npcs]
@@ -745,7 +740,6 @@ while rodando:
             mapa_altura
         )
 
-        # Inicia a batalha ao encostar no inimigo
         for inimigo in inimigos:
             if (
                 not inimigo.derrotado
@@ -760,28 +754,10 @@ while rodando:
                 break
 
     # =====================================================
-    # CÂMERA
-    # =====================================================
-
-    camera_x = max(
-        0,
-        min(
-            mapa_largura - LARGURA_TELA,
-            jogador.x - LARGURA_TELA // 2
-        )
-    )
-
-    camera_y = max(
-        0,
-        min(
-            mapa_altura - ALTURA_TELA,
-            jogador.y - ALTURA_TELA // 2
-        )
-    )
-
-    # =====================================================
     # DESENHO
     # =====================================================
+
+    camera_x, camera_y = calcular_camera()
 
     if batalha is not None:
         batalha.desenhar(tela)
@@ -801,7 +777,6 @@ while rodando:
                 jogador
             )
 
-        # Caixa de diálogo do NPC
         if (
             npc_dialogo_atual is not None
             and npc_dialogo_atual.dialogo_aberto
