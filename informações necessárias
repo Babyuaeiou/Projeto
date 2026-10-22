@@ -110,3 +110,6 @@ def desenhar_mundo(camera_x, camera_y):
         desenhar_coordenadas()
 
     desenhar_minimapa()
+
+
+ e1,e2,e3,gt1,gt2,gt3,d1,d2,d3,f1,f2,f3
