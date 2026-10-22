@@ -1,3 +1,4 @@
+
 import pygame
 
 from cores import *
@@ -169,17 +170,19 @@ def desenhar_texto(
     tela.blit(imagem, (x, y))
 
 # =========================================================
-# COORDENADAS
+# COORDENADAS E FPS
 # =========================================================
 
 def desenhar_coordenadas():
     x = int(jogador.x)
     y = int(jogador.y)
+    fps = int(clock.get_fps())
 
-    largura_painel = 150
-    altura_painel = 66
+    largura_painel = 170
+    altura_painel = 90
 
-    painel_x = LARGURA_TELA - largura_painel - 10
+    # Canto superior esquerdo, separado do minimapa.
+    painel_x = 10
     painel_y = 10
 
     pygame.draw.rect(
@@ -215,15 +218,16 @@ def desenhar_coordenadas():
     )
 
     desenhar_texto(
-        f"X: {x}",
+        f"X: {x}  Y: {y}",
         painel_x + 10,
-        painel_y + 28
+        painel_y + 32
     )
 
     desenhar_texto(
-        f"Y: {y}",
-        painel_x + 78,
-        painel_y + 28
+        f"FPS: {fps}",
+        painel_x + 10,
+        painel_y + 57,
+        (120, 255, 120)
     )
 
 # =========================================================
@@ -347,10 +351,12 @@ def desenhar_mundo(camera_x, camera_y):
         ALTURA_TELA - 32
     )
 
+    # Primeiro desenha o minimapa.
+    desenhar_minimapa()
+
+    # Depois desenha o painel por cima do cenário.
     if mostrar_coordenadas:
         desenhar_coordenadas()
-
-    desenhar_minimapa()
 
 # =========================================================
 # LOJA
@@ -506,7 +512,7 @@ while rodando:
             elif evento.key == pygame.K_l:
                 loja_aberta = True
 
- # =====================================================
+    # =====================================================
     # ATUALIZAR JOGADOR E ENCONTRO
     # =====================================================
 
