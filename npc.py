@@ -1,4 +1,3 @@
-
 import os
 import random
 import pygame
@@ -24,14 +23,17 @@ class NPC:
         self.x = float(x)
         self.y = float(y)
 
-        self.dialogos = dialogos or ["Olá!"]
+        self.dialogos = dialogos or [
+            "Olá! Como vai?",
+            "É bom encontrar alguém por aqui.",
+        ]
         self.tem_loja = tem_loja
 
         self.velocidade = float(velocidade)
         self.distancia_maxima = float(distancia_maxima)
         self.pode_andar = pode_andar
-
         self.cor = cor
+
         self.largura_sprite, self.altura_sprite = tamanho_sprite
         self.largura_colisao, self.altura_colisao = colisao_tamanho
 
@@ -54,14 +56,15 @@ class NPC:
         self.tempo_movimento = 0
         self.tempo_espera = random.randint(800, 2200)
         self.andando = False
+
         self.destino_x = self.x
         self.destino_y = self.y
 
         self.carregar_sprites(sprite)
 
-    # =====================================================
-    # SPRITES
-    # =====================================================
+    # -----------------------------------------------------
+    # CARREGAR SPRITES
+    # -----------------------------------------------------
 
     def carregar_sprites(self, sprite):
         if not sprite:
@@ -70,53 +73,51 @@ class NPC:
         caminho = os.path.abspath(sprite)
 
         if not os.path.isfile(caminho):
-            print(
-                f"[NPC] Sprite não encontrado: {caminho}. "
-                "O NPC será desenhado automaticamente."
-            )
+            print(f"[NPC] Sprite não encontrado: {caminho}")
             return
 
         pasta = os.path.dirname(caminho)
-        nome_arquivo = os.path.basename(caminho)
 
-        # Exemplo: F1.png -> prefixo F, quadro 1
-        nome_sem_extensao = os.path.splitext(nome_arquivo)[0]
-        prefixo = nome_sem_extensao[0].upper()
-
-        prefixos = {
+        nomes_direcoes = {
             "F": "baixo",
             "T": "cima",
             "S": "esquerda",
             "D": "direita",
         }
 
-        if prefixo not in prefixos:
+        nome_arquivo = os.path.basename(caminho)
+        prefixo = os.path.splitext(nome_arquivo)[0][:1].upper()
+
+        if prefixo not in nomes_direcoes:
             print(
-                f"[NPC] Nome de sprite inválido: {nome_arquivo}. "
-                "Use F1.png, T1.png, S1.png ou D1.png."
+                "[NPC] Use um sprite direcional como "
+                "F1.png, T1.png, S1.png ou D1.png."
             )
             return
 
-        for letra, direcao in prefixos.items():
+        for letra, direcao in nomes_direcoes.items():
             for numero in range(1, 10):
                 caminho_quadro = os.path.join(
-                    pasta, f"{letra}{numero}.png"
+                    pasta,
+                    f"{letra}{numero}.png",
                 )
 
-                # Aceita também extensões em maiúsculas.
                 if not os.path.isfile(caminho_quadro):
-                    caminho_alternativo = os.path.join(
-                        pasta, f"{letra}{numero}.PNG"
+                    caminho_maiusculo = os.path.join(
+                        pasta,
+                        f"{letra}{numero}.PNG",
                     )
-                    if os.path.isfile(caminho_alternativo):
-                        caminho_quadro = caminho_alternativo
+
+                    if os.path.isfile(caminho_maiusculo):
+                        caminho_quadro = caminho_maiusculo
                     else:
                         continue
 
                 try:
-                    imagem = pygame.image.load(
-                        caminho_quadro
-                    ).convert_alpha()
+                    imagem = pygame.image.load(caminho_quadro)
+
+                    if pygame.display.get_surface():
+                        imagem = imagem.convert_alpha()
 
                     imagem = pygame.transform.scale(
                         imagem,
@@ -130,31 +131,43 @@ class NPC:
 
                 except pygame.error as erro:
                     print(
-                        f"[NPC] Erro ao carregar "
+                        f"[NPC] Não foi possível carregar "
                         f"{caminho_quadro}: {erro}"
                     )
 
         if not any(self.sprites.values()):
-            print("[NPC] Nenhum sprite direcional foi carregado.")
+            print(f"[NPC] Nenhum sprite foi carregado para {self.nome}.")
 
-    # =====================================================
-    # COLISÃO
-    # =====================================================
+    # -----------------------------------------------------
+    # CAIXA DE COLISÃO
+    # -----------------------------------------------------
 
     @property
     def colisao(self):
         return pygame.Rect(
-            round(self.x + (self.largura_sprite - self.largura_colisao) / 2),
+            round(
+                self.x
+                + (self.largura_sprite - self.largura_colisao) / 2
+            ),
             round(self.y + self.altura_sprite - self.altura_colisao),
             self.largura_colisao,
             self.altura_colisao,
         )
 
-    def pode_ocupar(self, novo_x, novo_y, obstaculos=None,
-                    outros_npcs=None, limites_mundo=None):
-
+    def pode_ocupar(
+        self,
+        novo_x,
+        novo_y,
+        obstaculos=None,
+        outros_npcs=None,
+        outros_inimigos=None,
+        limites_mundo=None,
+    ):
         rect = pygame.Rect(
-            round(novo_x + (self.largura_sprite - self.largura_colisao) / 2),
+            round(
+                novo_x
+                + (self.largura_sprite - self.largura_colisao) / 2
+            ),
             round(novo_y + self.altura_sprite - self.altura_colisao),
             self.largura_colisao,
             self.altura_colisao,
@@ -173,6 +186,16 @@ class NPC:
                 if rect.colliderect(outro.colisao):
                     return False
 
+        if outros_inimigos:
+            for inimigo in outros_inimigos:
+                colisao_inimigo = getattr(inimigo, "colisao", None)
+
+                if colisao_inimigo is None:
+                    colisao_inimigo = getattr(inimigo, "rect", None)
+
+                if colisao_inimigo and rect.colliderect(colisao_inimigo):
+                    return False
+
         if limites_mundo:
             largura_mundo, altura_mundo = limites_mundo
 
@@ -186,24 +209,25 @@ class NPC:
 
         return True
 
-    # =====================================================
-    # MOVIMENTAÇÃO
-    # =====================================================
+    # -----------------------------------------------------
+    # MOVIMENTAÇÃO ALEATÓRIA
+    # -----------------------------------------------------
 
     def escolher_destino(self):
         distancia = random.uniform(
-            self.distancia_maxima * 0.3,
-            self.distancia_maxima,
+            max(10, self.distancia_maxima * 0.3),
+            max(11, self.distancia_maxima),
         )
 
-        angulo = random.uniform(0, 6.283185307)
+        angulo = random.uniform(0, 2 * 3.141592653589793)
 
-        self.destino_x = self.x + (
-            pygame.math.Vector2(1, 0).rotate_rad(angulo).x * distancia
-        )
-        self.destino_y = self.y + (
-            pygame.math.Vector2(1, 0).rotate_rad(angulo).y * distancia
-        )
+        self.destino_x = self.x + pygame.math.Vector2(
+            distancia, 0
+        ).rotate_rad(angulo).x
+
+        self.destino_y = self.y + pygame.math.Vector2(
+            distancia, 0
+        ).rotate_rad(angulo).y
 
         self.andando = True
 
@@ -213,6 +237,7 @@ class NPC:
         obstaculos=None,
         outros_npcs=None,
         limites_mundo=None,
+        outros_inimigos=None,
     ):
         if not self.pode_andar or self.dialogo_aberto:
             self.andando = False
@@ -224,6 +249,7 @@ class NPC:
             if self.tempo_movimento >= self.tempo_espera:
                 self.tempo_movimento = 0
                 self.escolher_destino()
+
             return
 
         dx = self.destino_x - self.x
@@ -236,9 +262,6 @@ class NPC:
             self.tempo_espera = random.randint(800, 2200)
             return
 
-        direcao_x = dx / distancia
-        direcao_y = dy / distancia
-
         if abs(dx) > abs(dy):
             self.direcao = "direita" if dx > 0 else "esquerda"
         else:
@@ -247,29 +270,39 @@ class NPC:
         passo = self.velocidade * (delta_ms / 1000)
         passo = min(passo, distancia)
 
+        direcao_x = dx / distancia
+        direcao_y = dy / distancia
+
         novo_x = self.x + direcao_x * passo
         novo_y = self.y + direcao_y * passo
 
-        # Tenta mover nos dois eixos.
+        argumentos = (
+            obstaculos,
+            outros_npcs,
+            outros_inimigos,
+            limites_mundo,
+        )
+
         if self.pode_ocupar(
             novo_x,
             novo_y,
-            obstaculos,
-            outros_npcs,
-            limites_mundo,
+            obstaculos=argumentos[0],
+            outros_npcs=argumentos[1],
+            outros_inimigos=argumentos[2],
+            limites_mundo=argumentos[3],
         ):
             self.x = novo_x
             self.y = novo_y
         else:
-            # Se diagonal estiver bloqueada, tenta um eixo de cada vez.
             moveu = False
 
             if self.pode_ocupar(
                 novo_x,
                 self.y,
-                obstaculos,
-                outros_npcs,
-                limites_mundo,
+                obstaculos=obstaculos,
+                outros_npcs=outros_npcs,
+                outros_inimigos=outros_inimigos,
+                limites_mundo=limites_mundo,
             ):
                 self.x = novo_x
                 moveu = True
@@ -277,9 +310,10 @@ class NPC:
             if self.pode_ocupar(
                 self.x,
                 novo_y,
-                obstaculos,
-                outros_npcs,
-                limites_mundo,
+                obstaculos=obstaculos,
+                outros_npcs=outros_npcs,
+                outros_inimigos=outros_inimigos,
+                limites_mundo=limites_mundo,
             ):
                 self.y = novo_y
                 moveu = True
@@ -294,14 +328,14 @@ class NPC:
 
             if self.tempo_animacao >= self.intervalo_animacao:
                 self.tempo_animacao = 0
-
                 frames = self.sprites.get(self.direcao, [])
+
                 if frames:
                     self.quadro = (self.quadro + 1) % len(frames)
 
-    # =====================================================
-    # DESENHO
-    # =====================================================
+    # -----------------------------------------------------
+    # DESENHAR NPC
+    # -----------------------------------------------------
 
     def desenhar(self, tela, camera_x=0, camera_y=0, jogador=None):
         pos_x = round(self.x - camera_x)
@@ -316,9 +350,7 @@ class NPC:
                 imagem = frames[0]
 
             tela.blit(imagem, (pos_x, pos_y))
-
         else:
-            # Desenho simples caso não tenha sprites.
             pygame.draw.rect(
                 tela,
                 self.cor,
@@ -342,37 +374,38 @@ class NPC:
             )
 
         fonte = pygame.font.SysFont(None, 20)
-        texto_nome = fonte.render(self.nome, True, (255, 255, 255))
-        fundo_nome = texto_nome.get_rect(
-            midbottom=(pos_x + self.largura_sprite // 2, pos_y - 3)
+        texto_nome = fonte.render(
+            self.nome,
+            True,
+            (255, 255, 255),
         )
-        fundo_nome.inflate_ip(8, 4)
+
+        caixa_nome = texto_nome.get_rect(
+            midbottom=(
+                pos_x + self.largura_sprite // 2,
+                pos_y - 3,
+            )
+        )
+        caixa_nome.inflate_ip(8, 4)
 
         pygame.draw.rect(
             tela,
             (30, 30, 30),
-            fundo_nome,
+            caixa_nome,
             border_radius=4,
         )
 
         tela.blit(
             texto_nome,
-            (
-                fundo_nome.x + 4,
-                fundo_nome.y + 2,
-            ),
+            (caixa_nome.x + 4, caixa_nome.y + 2),
         )
 
-        if jogador is not None:
-            if self.perto_do_jogador(jogador):
-                self.desenhar_prompt(
-                    tela,
-                    pos_x,
-                    pos_y,
-                )
+        if jogador is not None and self.perto_do_jogador(jogador):
+            self.desenhar_prompt(tela, pos_x, pos_y)
 
     def desenhar_prompt(self, tela, pos_x, pos_y):
         fonte = pygame.font.SysFont(None, 22)
+
         texto = fonte.render(
             "APERTE ESPAÇO PARA INTERAGIR",
             True,
@@ -393,6 +426,7 @@ class NPC:
             caixa,
             border_radius=5,
         )
+
         pygame.draw.rect(
             tela,
             (230, 230, 230),
@@ -401,17 +435,11 @@ class NPC:
             border_radius=5,
         )
 
-        tela.blit(
-            texto,
-            (
-                caixa.centerx - texto.get_width() // 2,
-                caixa.centery - texto.get_height() // 2,
-            ),
-        )
+        tela.blit(texto, texto.get_rect(center=caixa.center))
 
-    # =====================================================
-    # INTERAÇÃO
-    # =====================================================
+    # -----------------------------------------------------
+    # INTERAÇÃO COM O JOGADOR
+    # -----------------------------------------------------
 
     def perto_do_jogador(self, jogador, distancia_maxima=70):
         jogador_rect = getattr(jogador, "colisao", None)
@@ -435,6 +463,7 @@ class NPC:
 
         self.dialogo_aberto = True
         self.indice_dialogo = 0
+        self.andando = False
         return True
 
     def processar_evento(self, evento):
@@ -462,6 +491,10 @@ class NPC:
 
         return False
 
+    # -----------------------------------------------------
+    # CAIXA DE DIÁLOGO
+    # -----------------------------------------------------
+
     def desenhar_dialogo(self, tela):
         if not self.dialogo_aberto:
             return
@@ -481,6 +514,7 @@ class NPC:
             caixa,
             border_radius=8,
         )
+
         pygame.draw.rect(
             tela,
             (240, 240, 240),
@@ -505,18 +539,31 @@ class NPC:
                 self.indice_dialogo,
                 len(self.dialogos) - 1,
             )
-            linha = fonte_dialogo.render(
-                str(self.dialogos[indice]),
-                True,
-                (255, 255, 255),
+
+            texto_dialogo = str(self.dialogos[indice])
+            linhas = self.quebrar_texto(
+                texto_dialogo,
+                fonte_dialogo,
+                caixa.width - 32,
             )
-            tela.blit(linha, (caixa.x + 16, caixa.y + 45))
+
+            y = caixa.y + 45
+
+            for linha in linhas[:2]:
+                imagem_linha = fonte_dialogo.render(
+                    linha,
+                    True,
+                    (255, 255, 255),
+                )
+                tela.blit(imagem_linha, (caixa.x + 16, y))
+                y += 25
 
         dica = fonte_dica.render(
             "ESPAÇO: continuar    ESC: fechar",
             True,
             (190, 190, 190),
         )
+
         tela.blit(
             dica,
             (
@@ -524,3 +571,25 @@ class NPC:
                 caixa.bottom - dica.get_height() - 10,
             ),
         )
+
+    @staticmethod
+    def quebrar_texto(texto, fonte, largura_maxima):
+        palavras = str(texto).split()
+        linhas = []
+        linha_atual = ""
+
+        for palavra in palavras:
+            teste = palavra if not linha_atual else linha_atual + " " + palavra
+
+            if fonte.size(teste)[0] <= largura_maxima:
+                linha_atual = teste
+            else:
+                if linha_atual:
+                    linhas.append(linha_atual)
+
+                linha_atual = palavra
+
+        if linha_atual:
+            linhas.append(linha_atual)
+
+        return linhas
