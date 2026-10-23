@@ -21,19 +21,25 @@ class Personagem:
     ):
         self.nome = nome
 
-        # Atributos de combate
-        self.hpmaximo = 20
-        self.hp = 20
-
+        # Atributos-base e pontos distribuíveis.
+        self.hp_base = 20
         self.dano_base = 5
         self.defesa_base = 3
-
+        self.atributos_distribuidos = {
+            "vitalidade": 0,
+            "forca": 0,
+            "defesa": 0,
+            "agilidade": 0,
+        }
+        self.pontos_atributo = 0
+        self.limite_atributo = 20
+        self.hpmaximo = self.hp_base
+        self.hp = self.hpmaximo
         self.dano = self.dano_base
         self.defesa = self.defesa_base
         self.danototal = self.dano_base
         self.defesatotal = self.defesa_base
-
-        self.velocidade = 1
+        self.velocidade = 1.0
         self.cooldown = 1.0
         self.restante = 0.0
         self.buff_proximo_ataque = 0
@@ -96,7 +102,8 @@ class Personagem:
             imagens = []
 
             for arquivo in arquivos[:max(1, quantidade_sprites)]:
-                imagem = pygame.image.load(arquivo).convert_alpha()
+                caminho = self._resolver_caminho_sprite(arquivo)
+                imagem = pygame.image.load(caminho).convert_alpha()
                 imagens.append(imagem)
 
             self.sprites_parados[direcao] = imagens[0]
@@ -111,6 +118,25 @@ class Personagem:
         self.teclas_movimento_anterior = set()
 
         self.recalcular_atributos()
+
+    @staticmethod
+    def _resolver_caminho_sprite(arquivo):
+        """Localiza sprites tanto na raiz quanto na pasta de sprites do projeto."""
+        from pathlib import Path
+        base = Path(__file__).resolve().parent
+        candidatos = [base / arquivo, base / "sprite principal" / arquivo]
+        for candidato in candidatos:
+            if candidato.is_file():
+                return str(candidato)
+            pasta = candidato.parent
+            if pasta.is_dir():
+                encontrado = next((p for p in pasta.iterdir() if p.name.casefold() == candidato.name.casefold()), None)
+                if encontrado is not None:
+                    return str(encontrado)
+        raise FileNotFoundError(
+            f"Sprite '{arquivo}' não encontrado. Procurado em: "
+            + ", ".join(str(c) for c in candidatos)
+        )
 
     # =====================================================
     # ITENS E INVENTÁRIO
@@ -230,58 +256,70 @@ class Personagem:
         return True
 
     def recalcular_atributos(self):
+        """Recalcula atributos sem acumular bônus de equipamento repetidamente."""
         from item import catalogo
 
-        self.dano = getattr(self, "dano_base", 5)
-        self.defesa = getattr(self, "defesa_base", 3)
+        distribuicao = getattr(self, "atributos_distribuidos", {}) or {}
+        vitalidade = max(0, int(distribuicao.get("vitalidade", 0)))
+        forca = max(0, int(distribuicao.get("forca", 0)))
+        defesa_extra = max(0, int(distribuicao.get("defesa", 0)))
+        agilidade = max(0, int(distribuicao.get("agilidade", 0)))
 
-        for slot, atributo in (
-            ("arma", "dano"),
-            ("armadura", "defesa")
-        ):
+        self.hpmaximo = max(1, int(getattr(self, "hp_base", 20)) + vitalidade * 5)
+        self.dano = int(getattr(self, "dano_base", 5)) + forca * 2
+        self.defesa = int(getattr(self, "defesa_base", 3)) + defesa_extra
+
+        for slot, atributo in (("arma", "dano"), ("armadura", "defesa")):
             item_id = self.equipamentos.get(slot)
-
-            if not item_id:
-                continue
-
-            item = catalogo.obter(item_id)
-
-            if item is None:
-                continue
-
-            bonus = getattr(item, "atributos", {}) or {}
-            valor = bonus.get(atributo, 0)
-
-            if isinstance(valor, (int, float)):
-                if atributo == "dano":
-                    self.dano += valor
-                else:
-                    self.defesa += valor
+            item = catalogo.obter(item_id) if item_id else None
+            if item is not None:
+                bonus = (getattr(item, "atributos", {}) or {}).get(atributo, 0)
+                if isinstance(bonus, (int, float)):
+                    if atributo == "dano":
+                        self.dano += bonus
+                    else:
+                        self.defesa += bonus
 
         self.danototal = max(0, int(self.dano))
         self.defesatotal = max(0, int(self.defesa))
+        # Agilidade reduz o intervalo de ação, com limite para evitar abuso.
+        self.velocidade = min(1.30, 1.0 + agilidade * 0.015)
+        self.cooldown = max(0.65, 1.0 / self.velocidade)
+        self.hp = max(0, min(int(getattr(self, "hp", self.hpmaximo)), self.hpmaximo))
 
-    # =====================================================
-    # EXPERIÊNCIA E NÍVEIS
-    # =====================================================
+    def distribuir_ponto(self, atributo):
+        """Investe um ponto disponível em um atributo válido."""
+        if atributo not in self.atributos_distribuidos or self.pontos_atributo <= 0:
+            return False
+        if self.atributos_distribuidos[atributo] >= self.limite_atributo:
+            return False
+
+        hp_anterior = self.hpmaximo
+        self.atributos_distribuidos[atributo] += 1
+        self.pontos_atributo -= 1
+        self.recalcular_atributos()
+        if atributo == "vitalidade":
+            self.hp = min(self.hpmaximo, self.hp + (self.hpmaximo - hp_anterior))
+        return True
 
     def ganhar_xp(self, quantidade):
         if quantidade <= 0:
-            return
+            return 0
 
+        niveis_ganhos = 0
         self.xp += int(quantidade)
-
         while self.xp >= self.xp_proximo:
             self.xp -= self.xp_proximo
             self.nivel += 1
-            self.xp_proximo = int(self.xp_proximo * 1.5)
+            niveis_ganhos += 1
+            self.pontos_atributo += 3
+            self.xp_proximo = max(self.xp_proximo + 1, int(self.xp_proximo * 1.35))
 
-            self.hpmaximo += 5
-            self.dano_base += 1
-            self.defesa_base += 1
-
-            self.hp = self.hpmaximo
+        if niveis_ganhos:
+            hp_antigo = self.hpmaximo
             self.recalcular_atributos()
+            self.hp = min(self.hpmaximo, self.hp + max(0, self.hpmaximo - hp_antigo))
+        return niveis_ganhos
 
     # =====================================================
     # COOLDOWN E CÁLCULO DE DANO
@@ -316,7 +354,7 @@ class Personagem:
         dano = int(dano * random.uniform(0.9, 1.1))
 
         if self.buff_proximo_ataque > 0:
-            dano += self.buff_proximo_ataque
+            dano = int(dano * (1 + float(self.buff_proximo_ataque)))
             self.buff_proximo_ataque = 0
 
         return max(1, dano)
@@ -565,13 +603,23 @@ class Inimigo:
         if not sprite:
             return
 
-        caminho = os.path.abspath(sprite)
-
-        if not os.path.isfile(caminho) and not os.path.isabs(sprite):
-            caminho = os.path.join(
-                os.path.dirname(os.path.abspath(__file__)),
-                sprite,
-            )
+        base = os.path.dirname(os.path.abspath(__file__))
+        candidatos = [os.path.abspath(sprite), os.path.join(base, sprite)]
+        # Sprites dos inimigos podem estar organizados em pastas temáticas.
+        candidatos.extend([
+            os.path.join(base, "gatu esqueletu", os.path.basename(sprite)),
+            os.path.join(base, "Frames arara", os.path.basename(sprite)),
+        ])
+        caminho = next((c for c in candidatos if os.path.isfile(c)), None)
+        if caminho is None:
+            nome = os.path.basename(sprite).casefold()
+            for pasta_raiz, _, arquivos in os.walk(base):
+                achado = next((a for a in arquivos if a.casefold() == nome), None)
+                if achado:
+                    caminho = os.path.join(pasta_raiz, achado)
+                    break
+        if caminho is None:
+            return
 
         pasta = os.path.dirname(caminho) or os.getcwd()
         extensao_base = os.path.splitext(caminho)[1]
@@ -918,53 +966,66 @@ class Inimigo:
 # =========================================================
 
 class Batalha:
+    """Combate ATB: jogador e inimigo carregam suas barras independentemente."""
+
+    ATB_MAXIMO = 100.0
+
     def __init__(self, jogador, inimigo):
         self.jogador = jogador
         self.inimigo = inimigo
-
         self.ativa = True
         self.terminada = False
         self.vitoria = False
         self.derrota = False
         self.resultado = None
-
-        self.turno = "jogador"
         self.defendendo = False
-
-        self.mensagem = f"Um {inimigo.nome} apareceu!"
-        self.opcoes = ["Atacar", "Defender"]
+        self.barra_jogador = 0.0
+        self.barra_inimigo = 0.0
+        self.jogador_pronto = False
+        self.opcoes = ["Atacar", "Defender", "Usar item", "Fugir"]
         self.opcao_selecionada = 0
+        self.mensagem = f"Um {inimigo.nome} apareceu!"
+        self.fonte = pygame.font.Font(None, 27)
+        self.fonte_titulo = pygame.font.Font(None, 42)
+        self.tempo_mensagem = 0.0
 
-        self.fonte = pygame.font.Font(None, 30)
-        self.fonte_titulo = pygame.font.Font(None, 44)
+    def atualizar(self, dt):
+        if not self.ativa:
+            return
+        dt = max(0.0, min(float(dt), 0.1))
+        if self.tempo_mensagem > 0:
+            self.tempo_mensagem = max(0.0, self.tempo_mensagem - dt)
+
+        velocidade_jogador = max(0.65, min(1.30, float(getattr(self.jogador, "velocidade", 1.0))))
+        velocidade_inimigo = max(0.65, min(1.30, float(getattr(self.inimigo, "velocidade_atb", 1.0))))
+
+        if not self.jogador_pronto:
+            self.barra_jogador = min(self.ATB_MAXIMO, self.barra_jogador + dt * 32 * velocidade_jogador)
+            if self.barra_jogador >= self.ATB_MAXIMO:
+                self.jogador_pronto = True
+                self.mensagem = "Sua ação está pronta. Escolha um comando."
+                self.tempo_mensagem = 2.0
+
+        self.barra_inimigo = min(self.ATB_MAXIMO, self.barra_inimigo + dt * 25 * velocidade_inimigo)
+        if self.barra_inimigo >= self.ATB_MAXIMO and self.ativa:
+            self._acao_inimigo()
 
     def calcular_dano(self, atacante, alvo):
-        ataque = max(
-            0,
-            getattr(
-                atacante,
-                "danototal",
-                getattr(atacante, "dano", 0)
-            )
-        )
+        ataque = max(1, int(getattr(atacante, "danototal", getattr(atacante, "dano", 1))))
+        defesa = max(0, int(getattr(alvo, "defesatotal", getattr(alvo, "defesa", 0))))
+        dano = max(1, int(ataque * ataque / (ataque + defesa) * random.uniform(0.9, 1.1)))
+        return dano
 
-        defesa = max(
-            0,
-            getattr(
-                alvo,
-                "defesatotal",
-                getattr(alvo, "defesa", 0)
-            )
-        )
+    def _mensagem(self, texto):
+        self.mensagem = texto
+        self.tempo_mensagem = 2.5
 
-        if ataque <= 0:
-            return 0
+    def _gastar_acao_jogador(self):
+        self.barra_jogador = 0.0
+        self.jogador_pronto = False
+        self.opcao_selecionada = 0
 
-        dano = ataque * ataque / (ataque + defesa)
-
-        return max(1, int(dano * random.uniform(0.9, 1.1)))
-
-    def verificar_fim(self):
+    def _verificar_fim(self):
         if self.inimigo.hp <= 0:
             self.inimigo.hp = 0
             self.inimigo.derrotado = True
@@ -972,273 +1033,139 @@ class Batalha:
             self.terminada = True
             self.vitoria = True
             self.resultado = "vitoria"
-
             self.jogador.ganhar_xp(self.inimigo.xp_recompensa)
             self.jogador.moedas += self.inimigo.moedas_recompensa
-
-            self.mensagem = (
-                f"Você venceu! +{self.inimigo.xp_recompensa} XP "
-                f"e +{self.inimigo.moedas_recompensa} moedas."
-            )
-
+            self._mensagem(f"Vitória! +{self.inimigo.xp_recompensa} XP e +{self.inimigo.moedas_recompensa} moedas.")
             return True
-
         if self.jogador.hp <= 0:
             self.jogador.hp = 0
             self.ativa = False
             self.terminada = True
             self.derrota = True
             self.resultado = "derrota"
-            self.mensagem = "Você foi derrotado!"
-
+            self._mensagem("Você foi derrotado!")
             return True
-
         return False
 
-    def atacar(self):
-        if not self.ativa or self.turno != "jogador":
-            return
-
-        dano = self.jogador.calcular_dano(self.inimigo)
-        self.inimigo.hp -= dano
-
-        self.mensagem = f"Você causou {dano} de dano!"
-
-        if self.verificar_fim():
-            return
-
-        self.turno = "inimigo"
-        self.turno_inimigo()
-
-    def defender(self):
-        if not self.ativa or self.turno != "jogador":
-            return
-
-        self.defendendo = True
-        self.mensagem = "Você se preparou para defender!"
-
-        self.turno = "inimigo"
-        self.turno_inimigo()
-
-    def turno_inimigo(self):
-        if not self.ativa:
-            return
-
+    def _acao_inimigo(self):
+        self.barra_inimigo = 0.0
         dano = self.calcular_dano(self.inimigo, self.jogador)
-
         if self.defendendo:
             dano = max(1, dano // 2)
             self.defendendo = False
-            self.mensagem = (
-                f"Você defendeu e recebeu {dano} de dano."
-            )
+            self._mensagem(f"Você defendeu o golpe e recebeu {dano} de dano.")
         else:
-            self.mensagem = (
-                f"{self.inimigo.nome} causou {dano} de dano!"
-            )
+            self._mensagem(f"{self.inimigo.nome} causou {dano} de dano!")
+        self.jogador.hp = max(0, self.jogador.hp - dano)
+        self._verificar_fim()
 
-        self.jogador.hp -= dano
+    def _usar_item(self):
+        from item import catalogo
+        for item_id, quantidade in list(self.jogador.inventario.items()):
+            if quantidade <= 0:
+                continue
+            item = catalogo.obter(item_id)
+            if item is None or item.categoria not in ("pocao", "consumivel"):
+                continue
+            efeitos = item.efeitos or {}
+            cura = int(efeitos.get("cura", 0))
+            cura_total = bool(efeitos.get("cura_total", False))
+            if cura_total or cura > 0:
+                if self.jogador.hp >= self.jogador.hpmaximo:
+                    self._mensagem("Seu HP já está cheio.")
+                    return False
+                antes = self.jogador.hp
+                self.jogador.hp = self.jogador.hpmaximo if cura_total else min(self.jogador.hpmaximo, self.jogador.hp + cura)
+                self.jogador.remover_item(item_id, 1)
+                self._mensagem(f"Você usou {item.nome} e recuperou {self.jogador.hp - antes} HP.")
+                return True
+            bonus = efeitos.get("buff_proximo_ataque", 0)
+            if bonus:
+                self.jogador.buff_proximo_ataque = getattr(self.jogador, "buff_proximo_ataque", 0) + bonus
+                self.jogador.remover_item(item_id, 1)
+                self._mensagem(f"Você usou {item.nome}.")
+                return True
+        self._mensagem("Você não possui um item utilizável.")
+        return False
 
-        if self.verificar_fim():
+    def executar_comando(self):
+        if not self.ativa or not self.jogador_pronto:
             return
-
-        self.turno = "jogador"
-        self.opcao_selecionada = 0
+        comando = self.opcoes[self.opcao_selecionada]
+        if comando == "Atacar":
+            dano = self.jogador.calcular_dano(self.inimigo)
+            self.inimigo.hp = max(0, self.inimigo.hp - dano)
+            self._mensagem(f"Você causou {dano} de dano!")
+            self._gastar_acao_jogador()
+            self._verificar_fim()
+        elif comando == "Defender":
+            self.defendendo = True
+            self._mensagem("Você assumiu uma postura defensiva.")
+            self._gastar_acao_jogador()
+        elif comando == "Usar item":
+            if self._usar_item():
+                self._gastar_acao_jogador()
+        elif comando == "Fugir":
+            if getattr(self.inimigo, "chefe", False):
+                self._mensagem("Não é possível fugir de um chefe!")
+            elif random.random() < 0.65:
+                self.ativa = False
+                self.terminada = True
+                self.resultado = "fuga"
+                self._mensagem("Você conseguiu fugir!")
+            else:
+                self._mensagem("A fuga falhou!")
+                self._gastar_acao_jogador()
 
     def processar_evento(self, evento):
         if not self.ativa or evento.type != pygame.KEYDOWN:
             return
-
-        if self.turno != "jogador":
+        if not self.jogador_pronto:
             return
-
         if evento.key in (pygame.K_UP, pygame.K_w):
-            self.opcao_selecionada = (
-                self.opcao_selecionada - 1
-            ) % len(self.opcoes)
-
+            self.opcao_selecionada = (self.opcao_selecionada - 1) % len(self.opcoes)
         elif evento.key in (pygame.K_DOWN, pygame.K_s):
-            self.opcao_selecionada = (
-                self.opcao_selecionada + 1
-            ) % len(self.opcoes)
-
+            self.opcao_selecionada = (self.opcao_selecionada + 1) % len(self.opcoes)
         elif evento.key in (pygame.K_RETURN, pygame.K_z):
-            if self.opcao_selecionada == 0:
-                self.atacar()
-            else:
-                self.defender()
+            self.executar_comando()
 
-    def desenhar_barra(
-        self,
-        tela,
-        x,
-        y,
-        largura,
-        altura,
-        hp,
-        hpmaximo,
-        cor
-    ):
-        pygame.draw.rect(
-            tela,
-            CinzaFraco,
-            (x, y, largura, altura)
-        )
-
-        proporcao = (
-            max(0, min(1, hp / hpmaximo))
-            if hpmaximo > 0
-            else 0
-        )
-
-        pygame.draw.rect(
-            tela,
-            cor,
-            (
-                x,
-                y,
-                int(largura * proporcao),
-                altura
-            )
-        )
-
-        pygame.draw.rect(
-            tela,
-            Branco,
-            (x, y, largura, altura),
-            2
-        )
+    def _desenhar_barra(self, tela, x, y, largura, altura, valor, maximo, cor):
+        pygame.draw.rect(tela, CinzaArdósiaEscuro, (x, y, largura, altura), border_radius=4)
+        proporcao = max(0.0, min(1.0, valor / maximo if maximo else 0.0))
+        if proporcao:
+            pygame.draw.rect(tela, cor, (x, y, int(largura * proporcao), altura), border_radius=4)
+        pygame.draw.rect(tela, Branco, (x, y, largura, altura), 1, border_radius=4)
 
     def desenhar(self, tela):
-        largura = tela.get_width()
-        altura = tela.get_height()
-
+        largura, altura = tela.get_size()
         tela.fill(AzulMeiaNoite)
+        pygame.draw.rect(tela, AzulArdósiaEscuro, (0, altura // 2, largura, altura // 2))
 
-        pygame.draw.rect(
-            tela,
-            AzulArdósiaEscuro,
-            (0, altura // 2, largura, altura // 2)
-        )
+        tela.blit(self.fonte_titulo.render(self.inimigo.nome, True, Branco), (40, 35))
+        tela.blit(self.fonte.render(f"HP {max(0, self.inimigo.hp)}/{self.inimigo.hpmaximo}", True, Branco), (40, 82))
+        self._desenhar_barra(tela, 40, 110, largura - 80, 18, self.inimigo.hp, self.inimigo.hpmaximo, VermelhoTijolo)
+        tela.blit(self.fonte.render("ATB do inimigo", True, Branco), (40, 145))
+        self._desenhar_barra(tela, 40, 172, largura - 80, 12, self.barra_inimigo, self.ATB_MAXIMO, Dourado)
 
-        # Painel do inimigo
-        pygame.draw.rect(
-            tela,
-            AzulMeiaNoite,
-            (largura - 310, 30, 280, 110)
-        )
+        painel = pygame.Rect(30, altura - 225, largura - 60, 190)
+        pygame.draw.rect(tela, AzulMeiaNoite, painel, border_radius=8)
+        pygame.draw.rect(tela, Dourado, painel, 2, border_radius=8)
+        tela.blit(self.fonte.render(f"{self.jogador.nome}  |  HP {self.jogador.hp}/{self.jogador.hpmaximo}", True, Branco), (48, altura - 210))
+        tela.blit(self.fonte.render("ATB do jogador", True, Branco), (48, altura - 178))
+        self._desenhar_barra(tela, 48, altura - 154, largura - 96, 14, self.barra_jogador, self.ATB_MAXIMO, VerdePrimavera)
 
-        tela.blit(
-            self.fonte.render(self.inimigo.nome, True, Branco),
-            (largura - 295, 40)
-        )
-
-        self.desenhar_barra(
-            tela,
-            largura - 295,
-            80,
-            250,
-            20,
-            self.inimigo.hp,
-            self.inimigo.hpmaximo,
-            VermelhoTijolo
-        )
-
-        tela.blit(
-            self.fonte.render(
-                f"HP: {self.inimigo.hp}/{self.inimigo.hpmaximo}",
-                True,
-                Branco
-            ),
-            (largura - 295, 105)
-        )
-
-        # Painel do jogador
-        pygame.draw.rect(
-            tela,
-            AzulMeiaNoite,
-            (30, altura - 190, 300, 150)
-        )
-
-        tela.blit(
-            self.fonte.render(self.jogador.nome, True, Branco),
-            (45, altura - 180)
-        )
-
-        self.desenhar_barra(
-            tela,
-            45,
-            altura - 145,
-            270,
-            20,
-            self.jogador.hp,
-            self.jogador.hpmaximo,
-            VerdePrimavera
-        )
-
-        tela.blit(
-            self.fonte.render(
-                f"HP: {self.jogador.hp}/{self.jogador.hpmaximo}",
-                True,
-                Branco
-            ),
-            (45, altura - 115)
-        )
-
-        # Painel de comandos
-        painel_x = largura - 310
-        painel_y = altura - 190
-
-        pygame.draw.rect(
-            tela,
-            AzulMeiaNoite,
-            (painel_x, painel_y, 280, 150)
-        )
-
-        tela.blit(
-            self.fonte_titulo.render("COMANDOS", True, Dourado),
-            (painel_x + 15, painel_y + 10)
-        )
-
+        colunas = [48, largura // 2 + 10]
         for i, opcao in enumerate(self.opcoes):
-            selecionada = (
-                i == self.opcao_selecionada
-                and self.turno == "jogador"
-                and self.ativa
-            )
-
+            selecionada = i == self.opcao_selecionada and self.jogador_pronto
             cor = Dourado if selecionada else CinzaPrataClaro
+            x = colunas[i % 2]
+            y = altura - 125 + (i // 2) * 30
             marcador = "> " if selecionada else "  "
+            tela.blit(self.fonte.render(marcador + opcao, True, cor), (x, y))
 
-            tela.blit(
-                self.fonte.render(marcador + opcao, True, cor),
-                (painel_x + 20, painel_y + 60 + i * 35)
-            )
-
-        # Mensagem
-        pygame.draw.rect(
-            tela,
-            AzulMeiaNoite,
-            (30, 30, min(largura - 60, 500), 55)
-        )
-
-        tela.blit(
-            self.fonte.render(self.mensagem, True, Branco),
-            (45, 45)
-        )
-
+        cor_mensagem = Dourado if self.jogador_pronto else Branco
+        tela.blit(self.fonte.render(self.mensagem[:95], True, cor_mensagem), (40, altura - 265))
         if self.terminada:
-            resultado = "VITÓRIA!" if self.vitoria else "DERROTA!"
-
-            texto = self.fonte_titulo.render(
-                resultado,
-                True,
-                Dourado
-            )
-
-            tela.blit(
-                texto,
-                texto.get_rect(
-                    center=(largura // 2, altura // 2)
-                )
-            )
+            resultado = "VITÓRIA!" if self.vitoria else ("DERROTA!" if self.derrota else "FUGA!")
+            texto = self.fonte_titulo.render(resultado, True, Dourado)
+            tela.blit(texto, texto.get_rect(center=(largura // 2, altura // 2)))
