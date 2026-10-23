@@ -1,6 +1,3 @@
-
-"""Sistema de itens do Hunt Bird."""
-
 class Item:
     def __init__(
         self,
@@ -243,4 +240,83 @@ catalogo.criar_item(
     valor=20,
     max_pilha=9,
     efeitos={"buff_proximo_ataque": 0.30},
+)
+
+
+# =========================================================
+# EQUIPAMENTOS ESPECIAIS
+# =========================================================
+
+catalogo.criar_item(
+    "lamina_cacador", "Lâmina de Caçador", "arma",
+    "Lâmina leve feita para enfrentar criaturas selvagens.", valor=120,
+    raridade="Incomum", atributos={"dano": 9, "bonus_animais": 2},
+)
+
+catalogo.criar_item(
+    "espada_cristal", "Espada de Cristal", "arma",
+    "Uma espada que vibra perto de criaturas mágicas.", valor=220,
+    raridade="Raro", atributos={"dano": 12, "bonus_magicos": 2},
+)
+
+catalogo.criar_item(
+    "lamina_guardiao", "Lâmina do Guardião", "arma",
+    "Relíquia de um antigo protetor. Seu fio reage à corrupção.", valor=0,
+    raridade="Épico", atributos={"dano": 15, "bonus_corrompidos": 3},
+)
+
+catalogo.criar_item(
+    "colete_escamas", "Colete de Escamas", "armadura",
+    "Escamas resistentes que amortecem impactos físicos.", valor=65,
+    raridade="Incomum", atributos={"defesa": 4},
+)
+
+catalogo.criar_item(
+    "manto_explorador", "Manto do Explorador", "armadura",
+    "Tecido tratado com ervas que ajuda a resistir a venenos.", valor=100,
+    raridade="Incomum", atributos={"defesa": 3, "resistencia_veneno": 0.25},
+)
+
+catalogo.criar_item(
+    "armadura_guardiao", "Armadura do Guardião", "armadura",
+    "Armadura antiga que oferece proteção contra efeitos debilitantes.", valor=0,
+    raridade="Épico", atributos={"defesa": 8, "resistencia_estado": 0.15},
+)
+
+catalogo.criar_item(
+    "couraca_seth", "Couraça do SETH", "armadura",
+    "Protege contra magia, mas pesa e reduz a velocidade de ação.", valor=0,
+    raridade="Lendário", atributos={"defesa": 10, "resistencia_magica": 0.25, "velocidade": -0.10},
+)
+
+catalogo.criar_item(
+    "antidoto", "Antídoto", "pocao",
+    "Remove o efeito de veneno.", valor=15, max_pilha=9,
+    efeitos={"remover_veneno": True},
+)
+
+catalogo.criar_item(
+    "sais_revigorantes", "Sais Revigorantes", "pocao",
+    "Ajuda a recuperar os sentidos após um atordoamento removível.", valor=20,
+    max_pilha=9, efeitos={"remover_atordoamento": True},
+)
+
+catalogo.criar_item(
+    "tonico_aceleracao", "Tônico de Aceleração", "consumivel",
+    "Aumenta temporariamente a velocidade da barra ATB.", valor=30,
+    max_pilha=5, efeitos={"buff_agilidade": 0.15, "duracao": 10},
+)
+
+catalogo.criar_item(
+    "biscoito_morcego", "Biscoito de Morcego", "pocao",
+    "Um biscoito estranho que recupera 8 HP e concede resistência temporária a atordoamento.",
+    valor=25, max_pilha=5, raridade="Incomum",
+    efeitos={"cura": 8, "resistencia_atordoamento": 0.25, "duracao": 8},
+)
+
+catalogo.criar_item(
+    "pena_vendaval", "Pena do Vendaval", "consumivel",
+    "Pena encantada que acelera brevemente as ações do usuário.",
+    valor=35, max_pilha=5, raridade="Incomum",
+    efeitos={"buff_agilidade": 0.20, "duracao": 8},
 )
