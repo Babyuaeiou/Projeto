@@ -11,7 +11,7 @@ from banco import (
 )
 from inventario import Inventario
 from item import catalogo
-from npc import NPC
+from npcs import NPC
 
 
 # =========================================================
@@ -41,13 +41,7 @@ mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
 
-# Cada retângulo representa uma área sólida do mapa.
-# Adicione outros pygame.Rect(...) para criar mais obstáculos.
-objetos_colisao = [
-    pygame.Rect(600, 400, 180, 50),
-    pygame.Rect(900, 700, 60, 220),
-]
-
+objetos_colisao = []
 
 # =========================================================
 # JOGADOR
@@ -65,7 +59,6 @@ jogador.recalcular_atributos()
 
 inventario = Inventario()
 
-# Itens iniciais só são adicionados em uma partida nova.
 dados_salvos = carregar_partida(
     jogador,
     inventario,
@@ -97,7 +90,7 @@ inventario.sincronizar_do_personagem(jogador)
 
 inimigos = [
     Inimigo(
-        nome="Lobo Selvagem",
+        nome="gato esqueleto",
         hpmaximo=22,
         dano=6,
         defesa=2,
@@ -107,32 +100,13 @@ inimigos = [
         moedas_recompensa=10,
         chefe=False,
         cor=MarromSela,
-        sprite="d1.png",
+        sprite="gt1.png",
         tamanho_sprite=(64, 64),
         velocidade_movimento=45,
         distancia_maxima=150,
         pode_andar=True
     ),
-
-    Inimigo(
-        nome="Goblin",
-        hpmaximo=16,
-        dano=4,
-        defesa=1,
-        x=1200,
-        y=850,
-        xp_recompensa=12,
-        moedas_recompensa=7,
-        chefe=False,
-        cor=VerdePrimavera,
-        sprite="e1.png",
-        tamanho_sprite=(64, 64),
-        velocidade_movimento=35,
-        distancia_maxima=120,
-        pode_andar=True
-    ),
 ]
-
 
 # =========================================================
 # NPCs
@@ -304,22 +278,6 @@ def desenhar_minimapa():
             area.y + round(py * escala_y)
         )
 
-    # Obstáculos
-    for obstaculo in objetos_colisao:
-        obstaculo_mapa = pygame.Rect(
-            area.x + round(obstaculo.x * escala_x),
-            area.y + round(obstaculo.y * escala_y),
-            max(1, round(obstaculo.width * escala_x)),
-            max(1, round(obstaculo.height * escala_y))
-        )
-
-        pygame.draw.rect(
-            tela,
-            CinzaClaro,
-            obstaculo_mapa
-        )
-
-    # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
             pygame.draw.circle(
@@ -329,7 +287,6 @@ def desenhar_minimapa():
                 3
             )
 
-    # NPCs
     for npc in npcs:
         pygame.draw.circle(
             tela,
@@ -338,7 +295,6 @@ def desenhar_minimapa():
             3
         )
 
-    # Jogador
     pygame.draw.circle(
         tela,
         AzulDodger,
@@ -362,22 +318,6 @@ def desenhar_minimapa():
 def desenhar_mundo(camera_x, camera_y):
     tela.fill(VerdeMar)
 
-    # Obstáculos
-    for obstaculo in objetos_colisao:
-        obstaculo_tela = pygame.Rect(
-            round(obstaculo.x - camera_x),
-            round(obstaculo.y - camera_y),
-            obstaculo.width,
-            obstaculo.height
-        )
-
-        pygame.draw.rect(
-            tela,
-            VerdeFloresta,
-            obstaculo_tela
-        )
-
-    # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
             inimigo.desenhar(
@@ -386,7 +326,6 @@ def desenhar_mundo(camera_x, camera_y):
                 camera_y
             )
 
-    # NPCs
     for npc in npcs:
         npc.desenhar(
             tela,
@@ -395,14 +334,12 @@ def desenhar_mundo(camera_x, camera_y):
             jogador
         )
 
-    # Jogador
     jogador.desenhar(
         tela,
         camera_x,
         camera_y
     )
 
-    # HUD do jogador
     pygame.draw.rect(
         tela,
         AzulMeiaNoite,
@@ -548,10 +485,6 @@ while rodando:
         if evento.type == pygame.QUIT:
             rodando = False
 
-        # -------------------------------------------------
-        # BATALHA
-        # -------------------------------------------------
-
         elif batalha is not None:
             batalha.processar_evento(evento)
 
@@ -580,10 +513,6 @@ while rodando:
                 batalha = None
                 salvar_jogo()
 
-        # -------------------------------------------------
-        # DIÁLOGO
-        # -------------------------------------------------
-
         elif (
             npc_dialogo_atual is not None
             and npc_dialogo_atual.dialogo_aberto
@@ -595,10 +524,6 @@ while rodando:
                     loja_aberta = True
 
                 npc_dialogo_atual = None
-
-        # -------------------------------------------------
-        # LOJA
-        # -------------------------------------------------
 
         elif loja_aberta:
             if evento.type == pygame.KEYDOWN:
@@ -631,19 +556,11 @@ while rodando:
                 ):
                     comprar_item()
 
-        # -------------------------------------------------
-        # INVENTÁRIO
-        # -------------------------------------------------
-
         elif inventario.aberto:
             if inventario.tratar_evento(evento, jogador):
                 inventario.sincronizar_para_personagem(
                     jogador
                 )
-
-        # -------------------------------------------------
-        # EVENTOS GERAIS
-        # -------------------------------------------------
 
         elif evento.type == pygame.KEYDOWN:
 
@@ -689,7 +606,6 @@ while rodando:
             if not inimigo.derrotado
         ]
 
-        # Atualiza NPCs e impede que atravessem obstáculos.
         obstaculos_npc = (
             list(objetos_colisao)
             + [jogador.colisao]
@@ -704,7 +620,6 @@ while rodando:
                 limites_mundo=(mapa_largura, mapa_altura)
             )
 
-        # Atualiza inimigos.
         retangulos_npc = [
             npc.colisao
             for npc in npcs
@@ -725,8 +640,6 @@ while rodando:
                 jogador=jogador
             )
 
-        # O jogador colide com paredes e NPCs.
-        # O contato com inimigos inicia uma batalha.
         obstaculos_jogador = (
             list(objetos_colisao)
             + [npc.colisao for npc in npcs]
