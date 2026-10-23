@@ -189,6 +189,9 @@ def salvar_partida(
         "cooldown",
         "restante",
         "buff_proximo_ataque",
+        "hp_base",
+        "pontos_atributo",
+        "limite_atributo",
         "x",
         "y",
     )
@@ -203,6 +206,9 @@ def salvar_partida(
                 valor, (str, int, float, bool)
             ) or valor is None:
                 dados_personagem[nome] = valor
+
+    if hasattr(jogador, "atributos_distribuidos"):
+        dados_personagem["atributos_distribuidos"] = dict(jogador.atributos_distribuidos)
 
     # Guarda também os equipamentos do personagem.
     if hasattr(jogador, "equipamentos"):
@@ -360,11 +366,19 @@ def carregar_partida(
         if nome in (
             "equipamentos",
             "inventario_personagem",
+            "atributos_distribuidos",
         ):
             continue
 
         if hasattr(jogador, nome):
             setattr(jogador, nome, valor)
+
+    if "atributos_distribuidos" in dados_personagem:
+        jogador.atributos_distribuidos = {
+            chave: max(0, int(valor))
+            for chave, valor in dados_personagem["atributos_distribuidos"].items()
+            if chave in ("vitalidade", "forca", "defesa", "agilidade")
+        }
 
     # Restaura os equipamentos.
     if "equipamentos" in dados_personagem:
@@ -379,6 +393,9 @@ def carregar_partida(
             jogador.inventario = _desserializar(
                 dados_personagem["inventario_personagem"]
             )
+
+    if hasattr(jogador, "recalcular_atributos"):
+        jogador.recalcular_atributos()
 
     # Atualiza a caixa de colisão para a posição carregada.
     if hasattr(jogador, "colisao"):
