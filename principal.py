@@ -41,12 +41,7 @@ mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
 
-# A mesma cor é usada no chão do mapa e no minimapa.
-# Altere esta variável para mudar a cor dos dois.
-MAPA_COR_FUNDO = VerdeMar
-
 objetos_colisao = []
-
 
 # =========================================================
 # JOGADOR
@@ -113,7 +108,6 @@ inimigos = [
     ),
 ]
 
-
 # =========================================================
 # NPCs
 # =========================================================
@@ -164,6 +158,9 @@ npc_dialogo_atual = None
 loja_aberta = False
 loja_cursor = 0
 mostrar_coordenadas = False
+atributos_abertos = False
+atributo_cursor = 0
+mensagem_atributos = ""
 
 itens_loja = [
     ("pocao_pequena", 10),
@@ -174,6 +171,12 @@ itens_loja = [
     ("armadura_couro", 30),
     ("espada_ferro", 80),
     ("armadura_ferro", 90),
+    ("antidoto", 15),
+    ("sais_revigorantes", 20),
+    ("tonico_aceleracao", 30),
+    ("lamina_cacador", 120),
+    ("colete_escamas", 65),
+    ("manto_explorador", 100),
 ]
 
 
@@ -199,7 +202,9 @@ def desenhar_texto(texto, x, y, cor=Branco, fonte_usada=None):
 # =========================================================
 
 def salvar_jogo():
-    inventario.sincronizar_para_personagem(jogador)
+    # O inventário do personagem é a fonte principal; reconstrói a interface
+    # antes de salvar para não restaurar itens já consumidos em batalha.
+    inventario.sincronizar_do_personagem(jogador)
 
     salvar_partida(
         jogador,
@@ -269,10 +274,9 @@ def desenhar_minimapa():
         border_radius=5
     )
 
-    # A cor do chão é exatamente a mesma do mapa principal.
     pygame.draw.rect(
         tela,
-        MAPA_COR_FUNDO,
+        CinzaArdósiaEscuro,
         area
     )
 
@@ -285,7 +289,6 @@ def desenhar_minimapa():
             area.y + round(py * escala_y)
         )
 
-    # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
             pygame.draw.circle(
@@ -295,7 +298,6 @@ def desenhar_minimapa():
                 3
             )
 
-    # NPCs
     for npc in npcs:
         pygame.draw.circle(
             tela,
@@ -304,7 +306,6 @@ def desenhar_minimapa():
             3
         )
 
-    # Jogador
     pygame.draw.circle(
         tela,
         AzulDodger,
@@ -312,7 +313,6 @@ def desenhar_minimapa():
         4
     )
 
-    # Borda
     pygame.draw.rect(
         tela,
         CinzaPrataClaro,
@@ -327,8 +327,7 @@ def desenhar_minimapa():
 # =========================================================
 
 def desenhar_mundo(camera_x, camera_y):
-    # O mapa principal utiliza a mesma cor do minimapa.
-    tela.fill(MAPA_COR_FUNDO)
+    tela.fill(VerdeMar)
 
     for inimigo in inimigos:
         if not inimigo.derrotado:
@@ -360,7 +359,7 @@ def desenhar_mundo(camera_x, camera_y):
     )
 
     desenhar_texto(
-        f"Nível {jogador.nivel}  HP {jogador.hp}/{jogador.hpmaximo}",
+        f"Nível {jogador.nivel}  HP {jogador.hp}/{jogador.hpmaximo}  [P] Atributos",
         18,
         ALTURA_TELA - 57
     )
@@ -368,7 +367,7 @@ def desenhar_mundo(camera_x, camera_y):
     desenhar_texto(
         f"Dano {jogador.danototal}  "
         f"Defesa {jogador.defesatotal}  "
-        f"Moedas {jogador.moedas}",
+        f"Moedas {jogador.moedas}  Pontos {jogador.pontos_atributo}",
         18,
         ALTURA_TELA - 32,
         Dourado
@@ -378,6 +377,38 @@ def desenhar_mundo(camera_x, camera_y):
 
     if mostrar_coordenadas:
         desenhar_coordenadas()
+
+
+# =========================================================
+# DISTRIBUIÇÃO DE ATRIBUTOS
+# =========================================================
+
+def desenhar_tela_atributos():
+    painel = pygame.Rect(130, 90, 540, 420)
+    pygame.draw.rect(tela, AzulMeiaNoite, painel, border_radius=10)
+    pygame.draw.rect(tela, Dourado, painel, 2, border_radius=10)
+    desenhar_texto("ATRIBUTOS DO PERSONAGEM", 160, 112, Dourado, fonte_grande)
+    desenhar_texto(f"Pontos disponíveis: {jogador.pontos_atributo}", 160, 155)
+
+    atributos = [
+        ("vitalidade", "Vitalidade", f"HP máximo: {jogador.hpmaximo}", "+5 HP por ponto"),
+        ("forca", "Força", f"Ataque: {jogador.danototal}", "+2 ataque por ponto"),
+        ("defesa", "Defesa", f"Defesa: {jogador.defesatotal}", "+1 defesa por ponto"),
+        ("agilidade", "Agilidade", f"Velocidade ATB: {int((jogador.velocidade - 1) * 100)}% bônus", "+1,5% por ponto; máximo +30%"),
+    ]
+    for indice, (chave, nome, valor, descricao) in enumerate(atributos):
+        y = 195 + indice * 52
+        selecionado = indice == atributo_cursor
+        cor = Dourado if selecionado else Branco
+        prefixo = "> " if selecionado else "  "
+        pontos = jogador.atributos_distribuidos.get(chave, 0)
+        desenhar_texto(f"{prefixo}{nome}: {pontos}/{jogador.limite_atributo}", 165, y, cor)
+        desenhar_texto(valor, 385, y)
+        desenhar_texto(descricao, 185, y + 22, CinzaClaro)
+
+    desenhar_texto("Setas: escolher | Z/Enter: investir ponto | P/Esc: fechar", 160, 445, CinzaClaro)
+    if mensagem_atributos:
+        desenhar_texto(mensagem_atributos, 160, 475, Dourado)
 
 
 # =========================================================
@@ -452,10 +483,12 @@ def comprar_item():
     if jogador.moedas < preco:
         return
 
-    jogador.moedas -= preco
-    jogador.adicionar_item(item_id, 1)
-
     inventario.sincronizar_do_personagem(jogador)
+    if not inventario.adicionar(item_id, 1):
+        return
+
+    inventario.sincronizar_para_personagem(jogador)
+    jogador.moedas -= preco
     salvar_jogo()
 
 
@@ -502,15 +535,8 @@ while rodando:
 
             if batalha.terminada:
                 if batalha.vitoria:
+                    # Batalha já concede XP e moedas ao confirmar a vitória.
                     batalha.inimigo.derrotado = True
-
-                    jogador.ganhar_xp(
-                        batalha.inimigo.xp_recompensa
-                    )
-
-                    jogador.moedas += (
-                        batalha.inimigo.moedas_recompensa
-                    )
 
                 elif batalha.derrota:
                     jogador.hp = jogador.hpmaximo
@@ -568,11 +594,25 @@ while rodando:
                 ):
                     comprar_item()
 
+        elif atributos_abertos:
+            if evento.type == pygame.KEYDOWN:
+                if evento.key in (pygame.K_ESCAPE, pygame.K_p):
+                    atributos_abertos = False
+                elif evento.key in (pygame.K_UP, pygame.K_w):
+                    atributo_cursor = (atributo_cursor - 1) % 4
+                elif evento.key in (pygame.K_DOWN, pygame.K_s):
+                    atributo_cursor = (atributo_cursor + 1) % 4
+                elif evento.key in (pygame.K_z, pygame.K_RETURN):
+                    nomes_atributos = ("vitalidade", "forca", "defesa", "agilidade")
+                    nome_atributo = nomes_atributos[atributo_cursor]
+                    if jogador.distribuir_ponto(nome_atributo):
+                        mensagem_atributos = f"Ponto aplicado em {nome_atributo.capitalize()}!"
+                        salvar_jogo()
+                    else:
+                        mensagem_atributos = "Sem pontos disponíveis ou atributo no limite."
+
         elif inventario.aberto:
-            if inventario.tratar_evento(evento, jogador):
-                inventario.sincronizar_para_personagem(
-                    jogador
-                )
+            inventario.tratar_evento(evento, jogador)
 
         elif evento.type == pygame.KEYDOWN:
 
@@ -584,6 +624,11 @@ while rodando:
 
             elif evento.key == pygame.K_c:
                 mostrar_coordenadas = not mostrar_coordenadas
+
+            elif evento.key == pygame.K_p:
+                atributos_abertos = True
+                atributo_cursor = 0
+                mensagem_atributos = ""
 
             elif evento.key == pygame.K_e:
                 inventario.tratar_evento(
@@ -600,6 +645,19 @@ while rodando:
                         if npc.interagir(jogador):
                             npc_dialogo_atual = npc
                             break
+
+    # Atualiza as barras ATB mesmo quando o jogador não pressiona teclas.
+    if batalha is not None:
+        batalha.atualizar(dt)
+        if batalha.terminada:
+            if batalha.vitoria:
+                batalha.inimigo.derrotado = True
+            elif batalha.derrota:
+                jogador.hp = jogador.hpmaximo
+                jogador.x, jogador.y = 650, 150
+                jogador.colisao.topleft = (round(jogador.x), round(jogador.y))
+            batalha = None
+            salvar_jogo()
 
     # =====================================================
     # ATUALIZAÇÃO DO MUNDO
@@ -693,7 +751,10 @@ while rodando:
             camera_y
         )
 
-        if loja_aberta:
+        if atributos_abertos:
+            desenhar_tela_atributos()
+
+        elif loja_aberta:
             desenhar_loja()
 
         elif inventario.aberto:
