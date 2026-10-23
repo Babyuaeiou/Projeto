@@ -1,3 +1,4 @@
+
 import pygame
 import random
 import math
@@ -43,7 +44,7 @@ class Personagem:
         self.xp_proximo = 30
         self.moedas = 30
 
-        # Inventário: {id_do_item: quantidade}
+        # Inventário
         self.inventario = {}
 
         # Equipamentos
@@ -58,11 +59,9 @@ class Personagem:
         self.velocidade_movimento = 5
         self.andando = False
 
-        self.colisao = pygame.Rect(
-            self.x, self.y, 50, 50
-        )
+        self.colisao = pygame.Rect(self.x, self.y, 50, 50)
 
-        # Sprites direcionais
+        # Sprites direcionais do jogador
         self.nome_sprite = nome_sprite
         self.quantidade_sprites = quantidade_sprites
 
@@ -97,9 +96,7 @@ class Personagem:
             imagens = []
 
             for arquivo in arquivos[:max(1, quantidade_sprites)]:
-                imagem = pygame.image.load(
-                    arquivo
-                ).convert_alpha()
+                imagem = pygame.image.load(arquivo).convert_alpha()
                 imagens.append(imagem)
 
             self.sprites_parados[direcao] = imagens[0]
@@ -120,7 +117,6 @@ class Personagem:
     # =====================================================
 
     def adicionar_item(self, item_id, quantidade=1):
-        """Adiciona uma quantidade de um item ao inventário."""
         if not isinstance(quantidade, int) or quantidade <= 0:
             return False
 
@@ -133,7 +129,6 @@ class Personagem:
         return True
 
     def remover_item(self, item_id, quantidade=1):
-        """Remove itens, desde que haja quantidade suficiente."""
         if not isinstance(quantidade, int) or quantidade <= 0:
             return False
 
@@ -159,10 +154,6 @@ class Personagem:
     # =====================================================
 
     def equipar(self, item_id):
-        """
-        Equipa uma arma ou armadura do catálogo.
-        O equipamento anterior volta para o inventário.
-        """
         from item import catalogo
 
         item = catalogo.obter(item_id)
@@ -170,9 +161,7 @@ class Personagem:
         if item is None:
             return False
 
-        categoria = str(
-            getattr(item, "categoria", "")
-        ).lower()
+        categoria = str(getattr(item, "categoria", "")).lower()
 
         if categoria in ("arma", "armas", "weapon"):
             slot = "arma"
@@ -204,9 +193,7 @@ class Personagem:
         if item is None:
             return False
 
-        categoria = str(
-            getattr(item, "categoria", "")
-        ).lower()
+        categoria = str(getattr(item, "categoria", "")).lower()
 
         if categoria not in ("arma", "armas", "weapon"):
             return False
@@ -221,9 +208,7 @@ class Personagem:
         if item is None:
             return False
 
-        categoria = str(
-            getattr(item, "categoria", "")
-        ).lower()
+        categoria = str(getattr(item, "categoria", "")).lower()
 
         if categoria not in ("armadura", "armaduras", "armor"):
             return False
@@ -231,7 +216,6 @@ class Personagem:
         return self.equipar(item_id)
 
     def desequipar(self, slot):
-        """Desequipa arma ou armadura e devolve ao inventário."""
         if slot not in self.equipamentos:
             return False
 
@@ -246,7 +230,6 @@ class Personagem:
         return True
 
     def recalcular_atributos(self):
-        """Recalcula dano e defesa usando os equipamentos atuais."""
         from item import catalogo
 
         self.dano = getattr(self, "dano_base", 5)
@@ -315,10 +298,7 @@ class Personagem:
         self.restante = self.cooldown
 
     def calcular_dano(self, alvo):
-        ataque = max(
-            0,
-            getattr(self, "danototal", self.dano)
-        )
+        ataque = max(0, getattr(self, "danototal", self.dano))
 
         defesa_alvo = max(
             0,
@@ -357,21 +337,23 @@ class Personagem:
         movimento_x = 0
         movimento_y = 0
 
-        if teclas[pygame.K_a] or teclas[pygame.K_LEFT]:
+        # Movimento horizontal: somente A e D.
+        if teclas[pygame.K_a]:
             movimento_x = -self.velocidade_movimento
             self.direcao = "esquerda"
-        elif teclas[pygame.K_d] or teclas[pygame.K_RIGHT]:
+        elif teclas[pygame.K_d]:
             movimento_x = self.velocidade_movimento
             self.direcao = "direita"
 
-        if teclas[pygame.K_w] or teclas[pygame.K_UP]:
+        # Movimento vertical: somente W e S.
+        if teclas[pygame.K_w]:
             movimento_y = -self.velocidade_movimento
             self.direcao = "cima"
-        elif teclas[pygame.K_s] or teclas[pygame.K_DOWN]:
+        elif teclas[pygame.K_s]:
             movimento_y = self.velocidade_movimento
             self.direcao = "baixo"
 
-        # Movimento horizontal
+        # Movimento horizontal e colisões.
         if movimento_x:
             nova_x = self.x + movimento_x
             self.colisao.x = round(nova_x)
@@ -390,7 +372,7 @@ class Personagem:
 
             self.colisao.x = round(self.x)
 
-        # Movimento vertical
+        # Movimento vertical e colisões.
         if movimento_y:
             nova_y = self.y + movimento_y
             self.colisao.y = round(nova_y)
@@ -423,15 +405,12 @@ class Personagem:
     def atualizar_animacao(self, tempo):
         teclas = pygame.key.get_pressed()
 
+        # As setinhas não controlam a direção do personagem.
         teclas_movimento = {
             pygame.K_a: "esquerda",
             pygame.K_d: "direita",
             pygame.K_w: "cima",
-            pygame.K_s: "baixo",
-            pygame.K_LEFT: "esquerda",
-            pygame.K_RIGHT: "direita",
-            pygame.K_UP: "cima",
-            pygame.K_DOWN: "baixo"
+            pygame.K_s: "baixo"
         }
 
         teclas_atuais = {
@@ -521,8 +500,6 @@ class Inimigo:
         pode_andar=True,
         colisao_tamanho=(38, 38),
     ):
-        import os
-
         self.nome = nome
         self.hpmaximo = hpmaximo
         self.hp = hpmaximo
@@ -536,15 +513,8 @@ class Inimigo:
         self.largura_colisao, self.altura_colisao = colisao_tamanho
 
         self.colisao = pygame.Rect(
-            round(
-                self.x
-                + (self.largura_sprite - self.largura_colisao) / 2
-            ),
-            round(
-                self.y
-                + self.altura_sprite
-                - self.altura_colisao
-            ),
+            round(self.x + (self.largura_sprite - self.largura_colisao) / 2),
+            round(self.y + self.altura_sprite - self.altura_colisao),
             self.largura_colisao,
             self.altura_colisao,
         )
@@ -589,7 +559,7 @@ class Inimigo:
         self._colisao = retangulo
 
     def carregar_sprites(self, sprite):
-        """Carrega sprite base e quadros numerados (d1.png, d2.png...)."""
+        """Carrega os sprites direcionais do inimigo."""
         import os
 
         if not sprite:
@@ -604,20 +574,10 @@ class Inimigo:
             )
 
         pasta = os.path.dirname(caminho) or os.getcwd()
-        nome = os.path.basename(caminho)
-        stem, extensao = os.path.splitext(nome)
-
-        match = re.match(r"^([A-Za-z_ -]*?)(\d+)$", stem)
-
-        if match:
-            prefixo = match.group(1)
-            numero_inicial = int(match.group(2))
-        else:
-            prefixo = stem
-            numero_inicial = 1
+        extensao_base = os.path.splitext(caminho)[1]
 
         extensoes = [
-            extensao,
+            extensao_base,
             ".png",
             ".PNG",
             ".jpg",
@@ -627,10 +587,10 @@ class Inimigo:
         ]
 
         nomes_direcao = {
-            "direita": ["D", "d"],
-            "esquerda": ["S", "s"],
-            "cima": ["T", "t"],
-            "baixo": ["F", "f"]
+            "direita": ["gd", "GD"],
+            "esquerda": ["ge", "GE"],
+            "cima": ["gt", "GT"],
+            "baixo": ["gf", "GF"]
         }
 
         def tentar_carregar(caminho_imagem):
@@ -638,16 +598,11 @@ class Inimigo:
                 return None
 
             try:
-                imagem = pygame.image.load(
-                    caminho_imagem
-                ).convert_alpha()
+                imagem = pygame.image.load(caminho_imagem).convert_alpha()
 
                 imagem = pygame.transform.scale(
                     imagem,
-                    (
-                        self.largura_sprite,
-                        self.altura_sprite
-                    )
+                    (self.largura_sprite, self.altura_sprite)
                 )
 
                 return imagem
@@ -660,16 +615,13 @@ class Inimigo:
         for direcao, prefixos in nomes_direcao.items():
             quadros = []
 
-            for pref in prefixos:
-                for numero in range(1, 5):
+            for prefixo in prefixos:
+                for numero in range(1, 4):
                     encontrados = []
 
-                    for ext in extensoes:
-                        nome_arquivo = f"{pref}{numero}{ext}"
-                        caminho_imagem = os.path.join(
-                            pasta,
-                            nome_arquivo
-                        )
+                    for extensao in extensoes:
+                        nome_arquivo = f"{prefixo}{numero}{extensao}"
+                        caminho_imagem = os.path.join(pasta, nome_arquivo)
 
                         if os.path.isfile(caminho_imagem):
                             encontrados.append(caminho_imagem)
@@ -685,14 +637,12 @@ class Inimigo:
 
             sprites_carregados[direcao] = quadros
 
-        # Se não houver sprites direcionais, tenta carregar o sprite informado.
         if not any(sprites_carregados.values()):
             imagem = tentar_carregar(caminho)
 
             if imagem is not None:
                 sprites_carregados["baixo"] = [imagem]
 
-        # Usa o sprite para todas as direções quando só existe uma direção.
         primeiro_grupo = next(
             (
                 quadros
@@ -734,8 +684,6 @@ class Inimigo:
         outros_inimigos,
         limites_mundo
     ):
-        import os
-
         retangulo = pygame.Rect(
             round(
                 novo_x
@@ -773,6 +721,10 @@ class Inimigo:
 
         return True
 
+    # =====================================================
+    # MÉTODO CORRIGIDO: MOVIMENTO DOS INIMIGOS
+    # =====================================================
+
     def atualizar(
         self,
         delta_ms,
@@ -788,50 +740,82 @@ class Inimigo:
         obstaculos = list(obstaculos or [])
         outros_inimigos = list(outros_inimigos or [])
 
-        self.tempo_parado += delta_ms
+        # Espera antes de escolher uma direção.
+        if not self.andando:
+            self.tempo_parado += delta_ms
 
-        if self.tempo_parado >= self.tempo_espera:
+            if self.tempo_parado < self.tempo_espera:
+                return
+
             self.tempo_parado = 0
-            self.tempo_espera = random.randint(700, 1700)
+            self.tempo_espera = random.randint(500, 1300)
 
-            deslocamento_x = random.randint(
-                -int(self.distancia_maxima),
-                int(self.distancia_maxima)
+            self.direcao = random.choice([
+                "direita",
+                "esquerda",
+                "cima",
+                "baixo"
+            ])
+
+            distancia = random.uniform(
+                max(10, self.distancia_maxima * 0.3),
+                max(11, self.distancia_maxima)
             )
 
-            deslocamento_y = random.randint(
-                -int(self.distancia_maxima),
-                int(self.distancia_maxima)
-            )
+            self.destino_x = self.x
+            self.destino_y = self.y
 
-            self.destino_x = self.x + deslocamento_x
-            self.destino_y = self.y + deslocamento_y
+            if self.direcao == "direita":
+                self.destino_x += distancia
+            elif self.direcao == "esquerda":
+                self.destino_x -= distancia
+            elif self.direcao == "baixo":
+                self.destino_y += distancia
+            else:
+                self.destino_y -= distancia
 
-        dx = self.destino_x - self.x
-        dy = self.destino_y - self.y
-        distancia = math.hypot(dx, dy)
+            self.andando = True
+            self.quadro = 0
+            self.tempo_animacao = 0
 
-        if distancia < 3:
+        # Calcula a distância restante na direção escolhida.
+        if self.direcao == "direita":
+            distancia_restante = self.destino_x - self.x
+        elif self.direcao == "esquerda":
+            distancia_restante = self.x - self.destino_x
+        elif self.direcao == "baixo":
+            distancia_restante = self.destino_y - self.y
+        else:
+            distancia_restante = self.y - self.destino_y
+
+        # Terminou o deslocamento.
+        if distancia_restante <= 1:
             self.andando = False
             self.tempo_parado = 0
-            self.tempo_espera = random.randint(700, 1700)
+            self.tempo_espera = random.randint(500, 1300)
+            self.quadro = 0
+            self.atualizar_colisao()
             return
 
-        if abs(dx) > abs(dy):
-            self.direcao = "direita" if dx >= 0 else "esquerda"
-        else:
-            self.direcao = "baixo" if dy >= 0 else "cima"
-
+        # Move em apenas uma direção por vez.
         passo = min(
-            self.velocidade_movimento * (delta_ms / 1000),
-            distancia,
+            self.velocidade_movimento * max(0, delta_ms) / 1000,
+            distancia_restante
         )
 
-        novo_x = self.x + (dx / distancia) * passo
-        novo_y = self.y + (dy / distancia) * passo
+        novo_x = self.x
+        novo_y = self.y
 
-        moveu = False
+        if self.direcao == "direita":
+            novo_x += passo
+        elif self.direcao == "esquerda":
+            novo_x -= passo
+        elif self.direcao == "baixo":
+            novo_y += passo
+        elif self.direcao == "cima":
+            novo_y -= passo
 
+        # Impede atravessar paredes, NPCs e outros inimigos.
         if self.pode_ocupar(
             novo_x,
             novo_y,
@@ -839,52 +823,38 @@ class Inimigo:
             outros_inimigos,
             limites_mundo
         ):
-            self.x, self.y = novo_x, novo_y
-            moveu = True
-
+            self.x = novo_x
+            self.y = novo_y
         else:
-            if self.pode_ocupar(
-                novo_x,
-                self.y,
-                obstaculos,
-                outros_inimigos,
-                limites_mundo
-            ):
-                self.x = novo_x
-                moveu = True
-
-            if self.pode_ocupar(
-                self.x,
-                novo_y,
-                obstaculos,
-                outros_inimigos,
-                limites_mundo
-            ):
-                self.y = novo_y
-                moveu = True
+            self.andando = False
+            self.tempo_parado = 0
+            self.tempo_espera = random.randint(300, 700)
 
         self.atualizar_colisao()
 
-        if not moveu:
-            self.andando = False
-            self.tempo_parado = 0
-            self.tempo_espera = random.randint(500, 1300)
-            return
+        # Anima os quadros do sprite enquanto anda.
+        if self.andando:
+            self.tempo_animacao += max(0, delta_ms)
 
-        self.andando = True
-        self.tempo_animacao += delta_ms
+            if self.tempo_animacao >= self.intervalo_animacao:
+                self.tempo_animacao %= self.intervalo_animacao
 
-        if self.tempo_animacao >= self.intervalo_animacao:
-            self.tempo_animacao %= self.intervalo_animacao
+                quadros = self.sprites.get(self.direcao, [])
+
+                if quadros:
+                    self.quadro = (
+                        self.quadro + 1
+                    ) % len(quadros)
+
+                    self.sprite_atual = quadros[self.quadro]
+        else:
+            self.quadro = 0
+            self.tempo_animacao = 0
 
             quadros = self.sprites.get(self.direcao, [])
 
             if quadros:
-                self.quadro = (
-                    self.quadro + 1
-                ) % len(quadros)
-
-                self.sprite_atual = quadros[self.quadro]
+                self.sprite_atual = quadros[0]
 
     def desenhar(self, tela, camera_x, camera_y):
         if self.derrotado:
@@ -898,7 +868,6 @@ class Inimigo:
         if quadros:
             imagem = quadros[self.quadro % len(quadros)]
             tela.blit(imagem, (pos_x, pos_y))
-
         else:
             retangulo = pygame.Rect(
                 pos_x,
@@ -941,10 +910,7 @@ class Inimigo:
             border_radius=4
         )
 
-        tela.blit(
-            nome,
-            (fundo.x + 4, fundo.y + 2)
-        )
+        tela.blit(nome, (fundo.x + 4, fundo.y + 2))
 
 
 # =========================================================
@@ -996,10 +962,7 @@ class Batalha:
 
         dano = ataque * ataque / (ataque + defesa)
 
-        return max(
-            1,
-            int(dano * random.uniform(0.9, 1.1))
-        )
+        return max(1, int(dano * random.uniform(0.9, 1.1)))
 
     def verificar_fim(self):
         if self.inimigo.hp <= 0:
@@ -1010,13 +973,8 @@ class Batalha:
             self.vitoria = True
             self.resultado = "vitoria"
 
-            self.jogador.ganhar_xp(
-                self.inimigo.xp_recompensa
-            )
-
-            self.jogador.moedas += (
-                self.inimigo.moedas_recompensa
-            )
+            self.jogador.ganhar_xp(self.inimigo.xp_recompensa)
+            self.jogador.moedas += self.inimigo.moedas_recompensa
 
             self.mensagem = (
                 f"Você venceu! +{self.inimigo.xp_recompensa} XP "
@@ -1066,10 +1024,7 @@ class Batalha:
         if not self.ativa:
             return
 
-        dano = self.calcular_dano(
-            self.inimigo,
-            self.jogador
-        )
+        dano = self.calcular_dano(self.inimigo, self.jogador)
 
         if self.defendendo:
             dano = max(1, dano // 2)
@@ -1077,7 +1032,6 @@ class Batalha:
             self.mensagem = (
                 f"Você defendeu e recebeu {dano} de dano."
             )
-
         else:
             self.mensagem = (
                 f"{self.inimigo.nome} causou {dano} de dano!"
@@ -1175,11 +1129,7 @@ class Batalha:
         )
 
         tela.blit(
-            self.fonte.render(
-                self.inimigo.nome,
-                True,
-                Branco
-            ),
+            self.fonte.render(self.inimigo.nome, True, Branco),
             (largura - 295, 40)
         )
 
@@ -1211,11 +1161,7 @@ class Batalha:
         )
 
         tela.blit(
-            self.fonte.render(
-                self.jogador.nome,
-                True,
-                Branco
-            ),
+            self.fonte.render(self.jogador.nome, True, Branco),
             (45, altura - 180)
         )
 
@@ -1250,11 +1196,7 @@ class Batalha:
         )
 
         tela.blit(
-            self.fonte_titulo.render(
-                "COMANDOS",
-                True,
-                Dourado
-            ),
+            self.fonte_titulo.render("COMANDOS", True, Dourado),
             (painel_x + 15, painel_y + 10)
         )
 
@@ -1265,20 +1207,11 @@ class Batalha:
                 and self.ativa
             )
 
-            cor = (
-                Dourado
-                if selecionada
-                else CinzaPrataClaro
-            )
-
+            cor = Dourado if selecionada else CinzaPrataClaro
             marcador = "> " if selecionada else "  "
 
             tela.blit(
-                self.fonte.render(
-                    marcador + opcao,
-                    True,
-                    cor
-                ),
+                self.fonte.render(marcador + opcao, True, cor),
                 (painel_x + 20, painel_y + 60 + i * 35)
             )
 
@@ -1290,20 +1223,12 @@ class Batalha:
         )
 
         tela.blit(
-            self.fonte.render(
-                self.mensagem,
-                True,
-                Branco
-            ),
+            self.fonte.render(self.mensagem, True, Branco),
             (45, 45)
         )
 
         if self.terminada:
-            resultado = (
-                "VITÓRIA!"
-                if self.vitoria
-                else "DERROTA!"
-            )
+            resultado = "VITÓRIA!" if self.vitoria else "DERROTA!"
 
             texto = self.fonte_titulo.render(
                 resultado,
@@ -1314,9 +1239,6 @@ class Batalha:
             tela.blit(
                 texto,
                 texto.get_rect(
-                    center=(
-                        largura // 2,
-                        altura // 2
-                    )
+                    center=(largura // 2, altura // 2)
                 )
             )
