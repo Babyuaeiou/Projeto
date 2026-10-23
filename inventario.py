@@ -1,6 +1,7 @@
 
 import pygame
 from item import catalogo
+from cores import *
 
 
 class Inventario:
@@ -83,8 +84,19 @@ class Inventario:
         if item is None or quantidade <= 0:
             return False
 
-        restante = quantidade
+        restante = int(quantidade)
         limite_pilha = max(1, int(item.max_pilha))
+
+        # Verifica a capacidade antes de alterar o inventário, evitando perdas parciais.
+        capacidade = 0
+        for slot in self.espacos:
+            if slot is None:
+                capacidade += limite_pilha
+            elif limite_pilha > 1 and slot.get("item_id") == item_id:
+                capacidade += max(0, limite_pilha - int(slot.get("quantidade", 1)))
+        if capacidade < restante:
+            self.mensagem = "Inventário cheio."
+            return False
 
         # Primeiro, tenta completar pilhas existentes.
         if limite_pilha > 1:
@@ -279,14 +291,14 @@ class Inventario:
         )
 
         pygame.draw.rect(
-            tela, (24, 25, 32), painel, border_radius=10
+            tela, AzulMeiaNoite, painel, border_radius=10
         )
         pygame.draw.rect(
-            tela, (90, 90, 105), painel, 3, border_radius=10
+            tela, CinzaArdósiaClaro, painel, 3, border_radius=10
         )
 
         titulo = self.fonte.render(
-            "INVENTÁRIO", True, (245, 225, 160)
+            "INVENTÁRIO", True, Dourado
         )
         tela.blit(titulo, (60, 48))
 
@@ -309,16 +321,16 @@ class Inventario:
             )
 
             cor = (
-                (75, 78, 91)
+                CinzaArdósiaEscuro
                 if indice < self.ESPACOS_MOCHILA
-                else (60, 83, 72)
+                else VerdeFloresta
             )
 
             pygame.draw.rect(
                 tela, cor, retangulo, border_radius=4
             )
             pygame.draw.rect(
-                tela, (130, 130, 145),
+                tela, CinzaArdósiaClaro,
                 retangulo, 1, border_radius=4
             )
 
@@ -329,7 +341,7 @@ class Inventario:
 
                 if item:
                     nome = self.fonte_menor.render(
-                        item.nome[:7], True, (245, 245, 245)
+                        item.nome[:7], True, BrancoAntigo
                     )
                     tela.blit(nome, (x + 3, y + 5))
 
@@ -339,21 +351,21 @@ class Inventario:
                         texto_qtd = self.fonte_menor.render(
                             str(quantidade),
                             True,
-                            (255, 240, 100)
+                            AmareloClaro
                         )
                         tela.blit(texto_qtd, (x + 34, y + 29))
 
             # Cursor atual.
             if indice == self.cursor:
                 pygame.draw.rect(
-                    tela, (255, 220, 70),
+                    tela, Dourado,
                     retangulo, 3, border_radius=4
                 )
 
             # Espaço selecionado com Z.
             if indice == self.espaco_selecionado:
                 pygame.draw.rect(
-                    tela, (80, 240, 120),
+                    tela, VerdePrimavera,
                     retangulo, 3, border_radius=4
                 )
 
@@ -375,7 +387,7 @@ class Inventario:
 
             tela.blit(
                 self.fonte_menor.render(
-                    equipamento, True, (255, 220, 140)
+                    equipamento, True, SedaDeMilho
                 ),
                 (60, altura - 100)
             )
@@ -383,7 +395,7 @@ class Inventario:
         ajuda = self.fonte_menor.render(
             "Setas: mover | Z: selecionar | X: usar/equipar | E/ESC: fechar",
             True,
-            (230, 230, 230)
+            CinzaPrataClaro
         )
         tela.blit(ajuda, (60, altura - 72))
 
@@ -392,7 +404,7 @@ class Inventario:
                 self.fonte_menor.render(
                     self.mensagem[:75],
                     True,
-                    (255, 235, 140)
+                    AmareloDouradoClaro
                 ),
                 (60, altura - 48)
             )
