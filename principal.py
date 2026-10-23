@@ -11,7 +11,7 @@ from banco import (
 )
 from inventario import Inventario
 from item import catalogo
-from npcs import NPC
+from npc import NPC
 
 
 # =========================================================
@@ -41,7 +41,12 @@ mapa_largura = 2400
 mapa_altura = 1800
 mapa_atual = "mapa_inicial"
 
+# A mesma cor é usada no chão do mapa e no minimapa.
+# Altere esta variável para mudar a cor dos dois.
+MAPA_COR_FUNDO = VerdeMar
+
 objetos_colisao = []
+
 
 # =========================================================
 # JOGADOR
@@ -107,6 +112,7 @@ inimigos = [
         pode_andar=True
     ),
 ]
+
 
 # =========================================================
 # NPCs
@@ -263,9 +269,10 @@ def desenhar_minimapa():
         border_radius=5
     )
 
+    # A cor do chão é exatamente a mesma do mapa principal.
     pygame.draw.rect(
         tela,
-        CinzaArdósiaEscuro,
+        MAPA_COR_FUNDO,
         area
     )
 
@@ -278,6 +285,7 @@ def desenhar_minimapa():
             area.y + round(py * escala_y)
         )
 
+    # Inimigos
     for inimigo in inimigos:
         if not inimigo.derrotado:
             pygame.draw.circle(
@@ -287,6 +295,7 @@ def desenhar_minimapa():
                 3
             )
 
+    # NPCs
     for npc in npcs:
         pygame.draw.circle(
             tela,
@@ -295,6 +304,7 @@ def desenhar_minimapa():
             3
         )
 
+    # Jogador
     pygame.draw.circle(
         tela,
         AzulDodger,
@@ -302,6 +312,7 @@ def desenhar_minimapa():
         4
     )
 
+    # Borda
     pygame.draw.rect(
         tela,
         CinzaPrataClaro,
@@ -316,7 +327,8 @@ def desenhar_minimapa():
 # =========================================================
 
 def desenhar_mundo(camera_x, camera_y):
-    tela.fill(VerdeMar)
+    # O mapa principal utiliza a mesma cor do minimapa.
+    tela.fill(MAPA_COR_FUNDO)
 
     for inimigo in inimigos:
         if not inimigo.derrotado:
