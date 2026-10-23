@@ -1,19 +1,975 @@
-GDD - A Ira da Arara Brilhante
-1. Visão Geral e Enredo
-Título Provisório: A Ira da Arara Brilhante
-Premissa: Após uma batalha lendária, o Servo retorna ao castelo e encontra o Rei Demônio e o Herói caídos. O Rei Demônio deixa cair um artefato supremo. O Servo tenta pegá-lo para acumular poder, mas uma Arara Azul rouba o item por pura obsessão com coisas brilhantes.
-Incidente Incitante: O artefato concede poderes cósmicos à ave, transformando animais e objetos comuns em criaturas demoníacas por acidente. O Servo inicia uma jornada cômica e frenética até o topo da montanha para recuperar o item.
-Cutscene Inicial: Uma sequência scriptada em pixel art 32 bits mostrando a comédia pastelão do furto da arara bem na hora da glória do protagonista.
-2. Mecânicas de Jogo
-Gênero: Ação e plataforma 2D com progressão linear por fases.
-Movimentação: Sistema fluido de corrida, pulo duplo e esquiva rápida (dash).
-Combate: Ataques corpo a corpo com uma espada enferrujada, evoluindo conforme o Servo coleta fragmentos de poder deixados pela arara.
-Inimigos: Fauna e flora corrompidas (ex: pacatos esquilos que viram feras flamejantes e pedras com dentes afiados).
-3. Direção de Arte e Estilo
-Estilo Visual: Pixel art rica e detalhada de 32 bits, inspirada em clássicos da era 16/32-bit (como Castlevania: SotN misturado com cores vibrantes).
-Paleta de Cores: Contraste marcante entre os tons sombrios do castelo/montanha e as cores berrantes e brilhantes da Arara Azul.
-Cenários: Castelo do Rei Demônio, Floresta Tropical Mutante e a Montanha Congelada do Cativeiro.
-4. Escopo Técnico em Pygame
-Motor: Desenvolvido puramente em Python utilizando a biblioteca Pygame.
-Otimização: Uso de Sprite Groups e blitting otimizado para manter 60 FPS estáveis com múltiplos inimigos na tela.
-Áudio: Trilha sonora no estilo chiptune orquestrado, combinando temas épicos de chefes com sons cômicos de aves.
+# HUNT BIRD
+## Documento de Design de Jogo (GDD)
+
+**Versão:** 2.0  
+**Gênero:** RPG de aventura 2D com combate em tempo ativo  
+**Motor:** Python + Pygame  
+**Plataforma:** PC  
+**Direção de arte:** Pixel art  
+**Perspectiva:** Visão superior (*Top-Down*)  
+**Referências:** Pokémon FireRed/LeafGreen e Final Fantasy IV  
+**Idioma:** Português brasileiro
+
+---
+
+# 1. VISÃO GERAL
+
+## 1.1. Conceito
+
+Hunt Bird é um RPG de aventura em 2D que combina exploração de mapas conectados, progressão de personagem, coleta de equipamentos, interação com NPCs e combates inspirados no sistema ATB (*Active Time Battle*) de Final Fantasy IV.
+
+O jogador controla o Servo do Rei Demônio, um personagem que embarca em uma jornada inesperada após o roubo de um artefato mágico por uma Arara Azul obcecada por objetos brilhantes.
+
+Durante a aventura, o protagonista atravessa florestas corrompidas, vilarejos, cavernas e montanhas, enfrentando criaturas transformadas pela influência do artefato.
+
+O jogo combina fantasia medieval, humor, exploração e batalhas estratégicas em tempo ativo.
+
+## 1.2. Pilares do jogo
+
+- **Exploração:** mapas amplos, movimentação livre e áreas conectadas.
+- **Combate estratégico:** sistema ATB inspirado em Final Fantasy IV, com comandos, habilidades, itens e inimigos que agem durante a batalha.
+- **Progressão:** experiência, aumento de atributos, armas, armaduras e consumíveis.
+- **Personalização:** possibilidade de adaptar equipamentos e estratégias ao estilo de jogo.
+- **Narrativa:** história de fantasia com situações cômicas, personagens peculiares e chefes memoráveis.
+- **Acessibilidade:** interface simples, controles intuitivos e informações claras sobre as ações disponíveis.
+
+---
+
+# 2. HISTÓRIA E UNIVERSO
+
+## 2.1. Premissa
+
+Após uma batalha lendária entre o Rei Demônio e um Herói, os dois adversários acabam caídos no salão do castelo.
+
+O Servo do Rei Demônio retorna ao local e percebe que seu mestre deixou cair um artefato de poder incomensurável: o SETH.
+
+Vendo uma oportunidade de acumular poder, o Servo tenta pegar o objeto. Entretanto, antes que consiga alcançá-lo, uma Arara Azul aparece, rouba o artefato e foge com ele.
+
+A ave não compreende a verdadeira natureza do objeto. Seu interesse está simplesmente no brilho do artefato.
+
+O SETH começa a liberar energia mágica descontrolada, corrompendo animais, plantas e objetos. Criaturas inofensivas tornam-se monstros perigosos, regiões inteiras sofrem alterações e fenômenos sobrenaturais passam a ameaçar o mundo.
+
+Sem o Rei Demônio para orientá-lo e sem o Herói para resolver a situação, o Servo precisa recuperar o artefato antes que o caos se espalhe.
+
+## 2.2. Objetivo principal
+
+Atravessar as regiões afetadas pela energia do SETH, derrotar os monstros que bloqueiam o caminho e alcançar o topo da montanha, onde a Arara Azul se esconde.
+
+O objetivo final é recuperar o artefato e restaurar a ordem do mundo.
+
+## 2.3. Tom narrativo
+
+A narrativa combina:
+
+- Fantasia medieval.
+- Humor e situações absurdas.
+- Criaturas mágicas e monstros corrompidos.
+- Momentos de exploração e descoberta.
+- Batalhas com chefes que exigem estratégia.
+- Uma aventura com progressão crescente de dificuldade.
+
+Apesar do tom cômico, a história deve manter objetivos claros e consequências para as ações do jogador.
+
+## 2.4. Introdução cinematográfica
+
+A introdução apresenta uma sequência em pixel art:
+
+1. O Rei Demônio e o Herói terminam sua batalha e caem no chão.
+2. O Servo entra no salão e observa os dois.
+3. O SETH cai próximo ao protagonista.
+4. O Servo se aproxima para pegar o artefato.
+5. A Arara Azul surge, agarra o objeto e foge.
+6. Uma onda de energia atravessa o cenário.
+7. A cena mostra animais e objetos sendo corrompidos.
+8. O Servo percebe o problema e inicia a perseguição.
+
+A sequência pode utilizar animações, diálogos curtos, efeitos sonoros e transições de câmera.
+
+---
+
+# 3. ESTRUTURA DO MUNDO
+
+O mundo é dividido em áreas conectadas. Cada região possui identidade visual própria, inimigos específicos, NPCs, recompensas e desafios.
+
+A exploração acontece em visão superior, com movimentação livre e câmera acompanhando o personagem.
+
+## 3.1. Castelo do Rei Demônio
+
+**Função:** introdução, tutorial e apresentação da história.
+
+O castelo apresenta corredores, salões, passagens e áreas parcialmente destruídas pela batalha entre o Rei Demônio e o Herói.
+
+O jogador aprende os controles básicos, conhece a história do SETH e tem seu primeiro contato com os sistemas de interação e combate.
+
+**Elementos da área:**
+- Salão do trono.
+- Corredores do castelo.
+- Salas destruídas.
+- Baús com itens iniciais.
+- Personagens que explicam os acontecimentos.
+- Saída em direção à primeira floresta.
+
+**Inimigos:**
+
+- **Rato do Castelo:** criatura fraca que ataca com mordidas rápidas.
+- **Morcego do Castelo:** inimigo ágil que pode agir com frequência devido à sua velocidade.
+- **Armadura Possuída:** armadura animada que possui boa defesa, mas baixa velocidade.
+- **Esqueleto Guarda:** guerreiro morto-vivo que utiliza ataques físicos básicos.
+
+**Chefe:** nenhum chefe obrigatório nesta área. O confronto inicial entre o Rei Demônio e o Herói é apresentado na introdução.
+
+## 3.2. Primeira Floresta — Floresta Mutante
+
+**Função:** apresentar a exploração externa, os encontros com monstros e o sistema de progressão.
+
+A floresta foi afetada pela primeira onda de energia liberada pelo SETH. A vegetação cresce de maneira irregular e animais comuns apresentam comportamentos agressivos.
+
+**Elementos da área:**
+- Trilhas entre árvores.
+- Vegetação densa.
+- Clareiras.
+- Pequenas passagens.
+- Baús escondidos.
+- Caminhos alternativos com recompensas.
+
+**Inimigos:**
+
+- **Esquilo Flamejante:** pequeno animal corrompido que utiliza ataques de fogo.
+- **Lobo Corrompido:** criatura veloz que causa dano físico e pode atacar com frequência.
+- **Cogumelo Venenoso:** libera esporos que podem aplicar veneno.
+- **Javali Mutante:** inimigo resistente com ataques físicos fortes.
+- **Raiz Carnívora:** planta imóvel que ataca com raízes e pode reduzir a velocidade de ação do alvo.
+- **Besouro de Casca:** criatura com defesa elevada e ataques de força moderada.
+
+**Chefe: Gato Esqueleto**
+
+Um felino morto-vivo que teve seu corpo alterado pela energia do SETH. Seus olhos brilham em roxo e chamas sobrenaturais envolvem suas patas.
+
+**Habilidades:**
+- **Garras Ósseas:** ataque físico contra um alvo.
+- **Chama Roxa:** causa dano mágico.
+- **Investida Esquelética:** ataque forte que pode causar dano adicional.
+- **Rugido Macabro:** pode aumentar o tempo necessário para a próxima ação do jogador.
+
+**Estratégia:** o jogador deve equilibrar ataques e recuperação de HP, aproveitando os intervalos entre as ações do chefe.
+
+## 3.3. Vilarejo Tranquilo
+
+**Função:** área central de descanso, comércio e preparação.
+
+O vilarejo é um dos poucos locais ainda relativamente seguros. Seus habitantes acompanham as mudanças no mundo e oferecem informações sobre os monstros e as regiões próximas.
+
+**Serviços:**
+- Loja de itens.
+- Recuperação do personagem.
+- Sistema de salvamento.
+- NPCs com diálogos.
+- Informações sobre equipamentos.
+- Orientações sobre os próximos objetivos.
+
+**Personagens importantes:**
+
+- **Morador:** fornece informações sobre a floresta e os acontecimentos recentes.
+- **Vendedor:** comercializa poções, armas, armaduras e itens especiais.
+- **Guardião do Vilarejo:** explica os perigos das regiões seguintes.
+- **Curandeiro:** recupera o HP do personagem mediante as condições definidas pelo jogo.
+
+**Inimigos:** não existem encontros aleatórios obrigatórios dentro do núcleo seguro do vilarejo.
+
+A região externa e os caminhos de acesso podem conter lobos, javalis e outras criaturas da floresta.
+
+## 3.4. Segunda Floresta — Floresta Profanada
+
+**Função:** aumentar a dificuldade e introduzir inimigos com efeitos de estado.
+
+Nesta região, a corrupção está mais concentrada. A vegetação apresenta cores anormais, algumas criaturas desenvolvem habilidades mágicas e os caminhos tornam-se mais perigosos.
+
+**Elementos da área:**
+- Árvores corrompidas.
+- Áreas de vegetação venenosa.
+- Ruínas antigas.
+- Trilhas bloqueadas por monstros.
+- Baús com equipamentos melhores.
+- Acesso à caverna profunda.
+
+**Inimigos:**
+
+- **Lobo Sombrio:** versão mais poderosa do lobo corrompido, com ataques físicos fortes.
+- **Cogumelo Esporulado:** aplica veneno e pode enfraquecer o alvo.
+- **Treant Corrompido:** criatura vegetal resistente, capaz de realizar ataques pesados.
+- **Aranha Venenosa:** utiliza veneno para causar dano ao longo do tempo.
+- **Fada Distorcida:** criatura mágica que pode atrasar a próxima ação do personagem.
+- **Javali Colossal:** inimigo resistente que executa investidas poderosas.
+
+**Chefe: Cogumelo Titã**
+
+Um cogumelo gigantesco que absorveu uma grande quantidade da energia do SETH.
+
+**Habilidades:**
+- **Esmagamento:** ataque físico de grande força.
+- **Nuvem de Esporos:** aplica veneno aos alvos atingidos.
+- **Esporos Regenerativos:** recupera parte do próprio HP.
+- **Explosão Fúngica:** causa dano a um alvo com grande intensidade.
+
+**Estratégia:** o jogador deve administrar os itens de cura, evitar o acúmulo de veneno e aproveitar os períodos em que o chefe se prepara para atacar.
+
+## 3.5. Caverna Profunda
+
+**Função:** apresentar inimigos resistentes, efeitos de controle e recompensas raras.
+
+A caverna contém vestígios de uma antiga estrutura subterrânea. A energia do SETH alterou os habitantes locais e despertou criaturas que estavam adormecidas.
+
+**Elementos da área:**
+- Túneis estreitos.
+- Salas subterrâneas.
+- Cristais mágicos.
+- Ruínas antigas.
+- Baús protegidos.
+- Passagens que conduzem à montanha.
+
+**Inimigos:**
+
+- **Morcego Fantasma:** criatura sobrenatural que pode atordoar o personagem.
+- **Esqueleto Guerreiro:** morto-vivo resistente com ataques físicos.
+- **Golem de Pedra:** possui defesa elevada e ataques lentos, mas poderosos.
+- **Aranha das Cavernas:** utiliza veneno e pode causar dano contínuo.
+- **Cristal Corrompido:** criatura mágica que dispara energia e pode aumentar sua resistência temporariamente.
+- **Mímico:** monstro disfarçado de baú, que surpreende o jogador com um ataque inicial.
+- **Verme Abissal:** criatura subterrânea que causa dano físico e pode enfraquecer o alvo.
+
+**Chefe: Morcego Fantasma**
+
+Um morcego sobrenatural que se fortaleceu ao absorver energia mágica acumulada na caverna.
+
+**Habilidades:**
+- **Mordida Fantasmagórica:** ataque físico.
+- **Pulso Sombrio:** causa dano mágico.
+- **Grito Paralisante:** aumenta o tempo necessário para a próxima ação do alvo.
+- **Drenagem Vital:** causa dano e recupera parte do HP do chefe.
+
+**Estratégia:** a velocidade do combate é fundamental. O jogador deve observar a barra ATB, utilizar itens no momento adequado e impedir que o chefe mantenha uma sequência de ataques.
+
+## 3.6. Topo da Montanha — Arena Final
+
+**Função:** conclusão da aventura e confronto final.
+
+O topo da montanha é o local onde a Arara Azul se refugiou com o SETH. A região apresenta anomalias intensas, fragmentos de energia e criaturas transformadas pelo poder do artefato.
+
+**Elementos da área:**
+- Trilhas rochosas.
+- Cristais energizados.
+- Restos de estruturas antigas.
+- Área de preparação antes da batalha final.
+- Arena do confronto contra a Arara.
+
+**Inimigos:**
+
+- **Águia Corrompida:** criatura voadora veloz que utiliza ataques físicos.
+- **Golem Glacial:** inimigo resistente que pode atrasar a próxima ação do personagem.
+- **Serpente Elemental:** utiliza ataques de energia e dano mágico.
+- **Guardião do SETH:** criatura que protege a passagem para a arena final.
+- **Fragmento Vivo:** manifestação instável da energia do artefato, capaz de alternar entre ataques físicos e mágicos.
+
+Esses inimigos devem ser mais fortes do que os encontrados nas primeiras regiões e recompensar o jogador com mais experiência e moedas.
+
+**Chefe final: Arara Azul**
+
+A Arara Azul é a responsável pelo caos causado pelo roubo do SETH. A ave utiliza o artefato sem compreender completamente seus poderes.
+
+**Habilidades:**
+- **Bicada Brilhante:** ataque físico rápido.
+- **Rajada Elemental:** dispara energia mágica.
+- **Explosão do SETH:** provoca dano elevado.
+- **Asas Caóticas:** realiza um ataque em sequência.
+- **Sobrecarga Cósmica:** habilidade especial utilizada na fase final do confronto.
+
+**Fases do combate:**
+
+1. **Fase inicial:** a Arara utiliza ataques físicos e habilidades elementais simples.
+2. **Fase intermediária:** o SETH libera mais energia, aumentando o dano e a frequência de determinadas habilidades.
+3. **Fase final:** a Arara perde o controle do artefato e utiliza ataques mais perigosos, exigindo gerenciamento cuidadoso da barra ATB e dos itens.
+
+**Conclusão:** após a vitória, o Servo recupera o SETH e precisa decidir como lidar com o poder do artefato. A conclusão pode abrir espaço para uma cena final cômica ou uma continuação da história.
+
+---
+
+# 4. SISTEMA DE COMBATE
+
+## 4.1. Conceito geral
+
+O combate utiliza o sistema **ATB (Active Time Battle), inspirado em Final Fantasy IV**.
+
+Diferentemente de um sistema em que cada participante precisa esperar uma rodada global para agir, cada personagem possui sua própria barra de ação. Essa barra é preenchida progressivamente e determina quando o participante pode executar um comando.
+
+O sistema deve combinar tempo, estratégia e gerenciamento de recursos.
+
+## 4.2. Funcionamento da barra ATB
+
+Cada participante possui uma barra ATB que progride de acordo com sua velocidade.
+
+1. A barra começa vazia no início do combate.
+2. O tempo passa e a barra é preenchida.
+3. Quando a barra chega ao máximo, o participante fica pronto para agir.
+4. O jogador escolhe um comando para o protagonista.
+5. A ação é executada e a barra volta a progredir para a próxima ação.
+6. Os inimigos possuem suas próprias barras e podem agir quando estiverem prontos.
+
+A velocidade de preenchimento deve variar conforme os atributos de cada participante.
+
+Personagens rápidos conseguem realizar ações com maior frequência, enquanto personagens lentos precisam esperar mais tempo entre os comandos.
+
+## 4.3. Modos de batalha
+
+O sistema pode oferecer dois modos:
+
+**Modo Ativo:** as barras continuam avançando enquanto o jogador escolhe um comando. Exige decisões rápidas.
+
+**Modo Espera:** o avanço da barra dos inimigos é temporariamente pausado durante a seleção de comandos em menus, como Habilidade e Item. O tempo volta a correr quando o jogador termina a seleção.
+
+O Modo Ativo deve ser a experiência principal, enquanto o Modo Espera oferece uma alternativa mais acessível.
+
+## 4.4. Comandos de batalha
+
+### Atacar
+
+Executa um ataque físico utilizando a arma equipada.
+
+O dano depende do ataque total do personagem, da defesa do inimigo e de eventuais modificadores.
+
+### Habilidade
+
+Permite executar habilidades especiais do personagem.
+
+As habilidades não utilizam pontos de magia. Cada habilidade pode possuir um tempo de recarga próprio, evitando que ataques poderosos sejam utilizados repetidamente sem restrições.
+
+Exemplos:
+
+- **Golpe Pesado:** ataque físico de dano elevado, com recarga maior.
+- **Ataque Rápido:** golpe de dano moderado que exige menos tempo de recarga.
+- **Postura Defensiva:** reduz temporariamente o dano recebido.
+- **Golpe Preciso:** ataque que reduz parcialmente a influência da defesa inimiga.
+
+Os valores e as recargas devem ser ajustados durante os testes de balanceamento.
+
+### Item
+
+Permite utilizar um item do inventário durante a batalha.
+
+Exemplos:
+- Recuperar HP.
+- Remover veneno.
+- Remover efeitos de atordoamento, quando permitido.
+- Aumentar temporariamente o dano.
+
+O consumo do item deve ser registrado imediatamente após a execução bem-sucedida da ação.
+
+### Fugir
+
+Tenta encerrar o combate sem derrotar o inimigo.
+
+A chance de fuga pode depender da velocidade do personagem e do inimigo. Chefes podem impedir a fuga.
+
+## 4.5. Atributos de combate
+
+- **HP:** quantidade de dano que o personagem pode receber antes de ser derrotado.
+- **Ataque:** influencia o dano físico causado.
+- **Defesa:** reduz o dano físico recebido.
+- **Velocidade:** determina a rapidez de preenchimento da barra ATB.
+- **Recarga:** tempo necessário para que uma habilidade possa ser utilizada novamente.
+
+O HP máximo, o ataque e a defesa podem aumentar com a progressão de nível e com os equipamentos.
+
+A velocidade pode ser influenciada por equipamentos e efeitos temporários, desde que isso seja balanceado para não tornar o ATB excessivamente rápido.
+
+## 4.6. Fórmula inicial de dano
+
+Uma fórmula inicial simples para o dano físico é:
+
+**Dano = máximo entre 1 e (Ataque total − Defesa do alvo)**
+
+O resultado pode receber modificadores de habilidades, equipamentos, efeitos de estado e resistência específica do inimigo.
+
+O dano nunca deve ser inferior a 1 quando um ataque válido é executado, salvo em situações especiais definidas pelo jogo.
+
+## 4.7. Efeitos de estado
+
+Os efeitos de estado adicionam variedade tática às batalhas.
+
+- **Veneno:** causa dano periódico durante um período limitado.
+- **Atordoamento:** impede temporariamente a execução de ações ou aumenta o tempo até a próxima ação, conforme a habilidade responsável pelo efeito.
+- **Enfraquecimento:** reduz temporariamente o ataque.
+- **Proteção:** reduz temporariamente o dano recebido.
+- **Aceleração:** aumenta temporariamente a velocidade de preenchimento da barra ATB.
+
+Cada efeito deve possuir duração, regras de aplicação e formas de remoção claramente definidas.
+
+O atordoamento deve ser utilizado com cuidado para não impedir que o jogador participe do combate por períodos excessivos.
+
+## 4.8. Inteligência artificial dos inimigos
+
+Os inimigos devem selecionar ações de acordo com seus atributos, habilidades e condições de combate.
+
+Exemplos:
+
+- Inimigos rápidos priorizam ações frequentes.
+- Inimigos resistentes utilizam ataques físicos e podem suportar mais dano.
+- Inimigos mágicos utilizam habilidades elementais.
+- Inimigos venenosos tentam aplicar efeitos de estado.
+- Chefes alternam ataques comuns e habilidades especiais.
+
+A inteligência artificial também deve considerar o HP restante do inimigo e o estado do jogador.
+
+## 4.9. Vitória, derrota e recompensas
+
+Ao vencer uma batalha, o jogador recebe:
+
+- Experiência.
+- Moedas.
+- Possibilidade de obter itens, conforme a tabela de recompensas do inimigo.
+
+Ao atingir a experiência necessária, o personagem sobe de nível e melhora seus atributos.
+
+Em caso de derrota, o jogo pode retornar o jogador ao último ponto de recuperação, aplicando as regras de penalidade definidas para a versão final.
+
+Os chefes devem oferecer recompensas superiores às dos inimigos comuns.
+
+---
+
+# 5. PROGRESSÃO DO PERSONAGEM
+
+## 5.1. Sistema de níveis
+
+O personagem começa em um nível inicial e evolui ao acumular experiência.
+
+A progressão deve aumentar gradualmente os atributos do protagonista e permitir enfrentar inimigos mais poderosos.
+
+Ao subir de nível, o personagem pode receber:
+
+- Aumento de HP máximo.
+- Aumento de ataque.
+- Aumento de defesa.
+- Recuperação de HP, conforme a regra definida para a progressão.
+
+A velocidade de progressão deve ser balanceada para evitar que o jogador precise repetir combates excessivamente.
+
+## 5.2. Equipamentos
+
+O personagem pode equipar:
+
+- Uma arma.
+- Uma armadura.
+
+A arma influencia principalmente o ataque. A armadura influencia principalmente a defesa.
+
+Os equipamentos devem ser armazenados no inventário e permanecer equipados após o salvamento da partida.
+
+A troca de equipamento deve atualizar os atributos totais imediatamente, sem duplicar bônus ou perder os atributos-base.
+
+## 5.3. Moedas
+
+As moedas são obtidas ao derrotar inimigos e podem ser encontradas em baús.
+
+São utilizadas para comprar poções, equipamentos e outros recursos no vilarejo.
+
+Os preços devem acompanhar a progressão de dificuldade das áreas.
+
+---
+
+# 6. INVENTÁRIO E ITENS
+
+## 6.1. Funcionamento do inventário
+
+O inventário permite visualizar, selecionar e utilizar os itens obtidos durante a aventura.
+
+A interface deve apresentar:
+
+- Nome do item.
+- Descrição.
+- Quantidade disponível.
+- Categoria.
+- Efeito.
+- Indicação de item equipado, quando aplicável.
+
+O inventário deve permitir selecionar itens com as setas do teclado, confirmar com Z e abrir ou fechar a interface com Enter, conforme o esquema de controles definido para o projeto.
+
+Os comandos do inventário não devem provocar movimentação acidental do personagem pelo mapa.
+
+## 6.2. Categorias de itens
+
+- **Poções:** recuperam HP ou removem efeitos de estado.
+- **Armas:** aumentam o ataque.
+- **Armaduras:** aumentam a defesa.
+- **Consumíveis de combate:** concedem efeitos temporários.
+- **Itens especiais:** possuem funções específicas relacionadas à aventura.
+
+## 6.3. Itens de recuperação
+
+### Poção Pequena
+
+Recupera 15 pontos de HP.
+
+Indicada para o início da aventura e para situações em que o personagem sofreu pouco dano.
+
+### Poção Grande
+
+Recupera 50 pontos de HP.
+
+Indicada para regiões intermediárias e combates mais longos.
+
+### Elixir do Servo
+
+Recupera 100% do HP atual necessário para retornar ao HP máximo.
+
+É um item raro, destinado a situações críticas e batalhas contra chefes.
+
+### Antídoto
+
+Remove o efeito de veneno.
+
+É especialmente útil na Floresta Profanada e nas cavernas.
+
+### Sais Revigorantes
+
+Removem o efeito de atordoamento, quando esse efeito puder ser removido por itens.
+
+Devem ser disponibilizados antes das regiões em que os inimigos utilizam esse tipo de controle com frequência.
+
+## 6.4. Itens de combate
+
+### Pedra de Afiar
+
+Aumenta em 30% o dano do próximo ataque físico.
+
+O bônus é consumido quando o ataque é executado. O item não deve permanecer ativo indefinidamente após a utilização.
+
+### Tônico de Aceleração
+
+Aumenta temporariamente a velocidade de preenchimento da barra ATB.
+
+É um recurso estratégico para batalhas contra inimigos rápidos e chefes.
+
+## 6.5. Armas
+
+### Punhos
+
+Equipamento inicial do Servo.
+
+Não oferece bônus especial, mas permite lutar antes da aquisição de uma arma.
+
+### Espada Enferrujada
+
+Primeira arma adquirida durante a aventura.
+
+Oferece um aumento pequeno de ataque e serve como equipamento inicial de progressão.
+
+### Espada de Ferro
+
+Arma intermediária, com aumento considerável de ataque.
+
+Indicada para a Segunda Floresta e a Caverna Profunda.
+
+### Espada do Guardião
+
+Arma avançada obtida em uma região perigosa ou como recompensa especial.
+
+Oferece ataque elevado e pode conceder um bônus contra criaturas corrompidas.
+
+## 6.6. Armaduras
+
+### Sem Armadura
+
+Condição inicial do personagem.
+
+Não concede bônus de defesa por equipamento.
+
+### Armadura de Couro
+
+Equipamento básico que aumenta a defesa.
+
+Disponível no início da progressão comercial.
+
+### Armadura de Ferro
+
+Armadura intermediária, com defesa superior à de couro.
+
+Indicada para as áreas mais perigosas.
+
+### Armadura do Guardião
+
+Equipamento avançado encontrado em um baú especial ou concedido como recompensa.
+
+Oferece defesa elevada e pode conceder resistência a efeitos de estado, desde que esse bônus seja implementado no sistema de combate.
+
+## 6.7. Regras de uso e balanceamento
+
+- Itens consumíveis devem ter quantidade limitada.
+- Itens de cura não podem recuperar mais HP do que o necessário para atingir o HP máximo.
+- Armas e armaduras não devem ser consumidas ao equipar ou desequipar.
+- A compra deve reduzir as moedas apenas quando a operação for concluída.
+- Os itens adquiridos devem aparecer imediatamente no inventário.
+- O inventário e os equipamentos devem ser persistidos no sistema de salvamento.
+- Itens especiais devem ter utilidade real e não apenas ocupar espaço.
+
+---
+
+# 7. LOJA E ECONOMIA
+
+A loja fica localizada no Vilarejo Tranquilo.
+
+O vendedor permite comprar itens e equipamentos utilizando as moedas obtidas durante a exploração.
+
+## 7.1. Catálogo inicial
+
+| Item | Preço sugerido | Categoria |
+|---|---:|---|
+| Poção Pequena | 10 moedas | Recuperação |
+| Poção Grande | 35 moedas | Recuperação |
+| Elixir do Servo | 75 moedas | Recuperação rara |
+| Antídoto | 15 moedas | Remoção de estado |
+| Sais Revigorantes | 20 moedas | Remoção de estado |
+| Pedra de Afiar | 20 moedas | Combate |
+| Tônico de Aceleração | 30 moedas | Combate |
+| Espada Enferrujada | 25 moedas | Arma |
+| Armadura de Couro | 30 moedas | Armadura |
+| Espada de Ferro | 80 moedas | Arma |
+| Armadura de Ferro | 90 moedas | Armadura |
+
+Os valores são referências iniciais e devem ser ajustados após testes de progressão e obtenção de moedas.
+
+Equipamentos avançados, como a Espada do Guardião e a Armadura do Guardião, podem ser obtidos em baús ou como recompensas especiais, sem necessariamente estarem disponíveis na loja.
+
+---
+
+# 8. NPCs E INTERAÇÃO
+
+## 8.1. NPCs
+
+Os NPCs tornam o mundo mais vivo e ajudam a transmitir informações sobre a história.
+
+Cada NPC pode possuir:
+
+- Nome.
+- Sprite personalizado.
+- Posição no mapa.
+- Caixa de colisão.
+- Diálogos múltiplos.
+- Movimento opcional.
+- Função específica.
+- Condições para liberar determinados diálogos.
+
+Os NPCs móveis podem caminhar aleatoriamente em intervalos definidos, respeitando colisões com o cenário, o jogador e outros NPCs.
+
+## 8.2. Interação
+
+O jogador deve se aproximar do NPC para iniciar uma conversa.
+
+Quando a interação estiver disponível, a interface deve exibir uma indicação, como:
+
+**"Pressione ESPAÇO para interagir."**
+
+Os diálogos devem ser apresentados em uma caixa de texto legível e permitir avançar entre mensagens.
+
+NPCs importantes podem fornecer orientações sobre chefes, áreas perigosas, equipamentos e objetivos da missão.
+
+## 8.3. Vendedores
+
+Os vendedores utilizam uma interface de comércio.
+
+O sistema deve impedir compras sem moedas suficientes e atualizar imediatamente o saldo e o inventário após uma transação válida.
+
+---
+
+# 9. DIREÇÃO DE ARTE
+
+## 9.1. Estilo visual
+
+O jogo utiliza pixel art detalhada, com referências visuais aos RPGs clássicos de 16 e 32 bits.
+
+A perspectiva é superior, com cenários compostos por tiles, personagens animados e mapas exploráveis.
+
+## 9.2. Identidade visual por região
+
+- **Castelo:** tons escuros, pedra, sombras e iluminação limitada.
+- **Primeira Floresta:** vegetação verde, cores naturais e pequenos sinais de corrupção.
+- **Vilarejo Tranquilo:** cores acolhedoras, construções de madeira e iluminação quente.
+- **Floresta Profanada:** vegetação alterada, cores intensas e elementos sobrenaturais.
+- **Caverna Profunda:** tons escuros, rochas, cristais e efeitos luminosos.
+- **Topo da Montanha:** rochas, efeitos elementais e manifestações intensas de energia.
+
+A Arara Azul deve apresentar cores vivas e contrastantes, tornando-se visualmente reconhecível em todas as cenas.
+
+## 9.3. Animações
+
+Os personagens devem possuir animações direcionais de acordo com o padrão de sprites utilizado pelo projeto.
+
+As animações prioritárias são:
+
+- Parado.
+- Caminhando.
+- Ataque.
+- Recebendo dano.
+- Derrota.
+- Habilidades especiais dos chefes.
+
+As animações devem respeitar o tamanho e a organização dos sprites existentes, evitando dependências desnecessárias de arquivos externos.
+
+---
+
+# 10. INTERFACE E CONTROLES
+
+## 10.1. Controles principais
+
+| Tecla | Ação |
+|---|---|
+| W, A, S, D | Movimentar o personagem |
+| ESPAÇO | Interagir com NPCs |
+| Enter | Abrir ou fechar o inventário |
+| Setas direcionais | Navegar pelas opções do inventário e menus |
+| Z | Confirmar a seleção no inventário |
+| C | Mostrar ou ocultar informações de depuração, quando habilitadas |
+| ESC | Fechar interfaces ou abrir o menu de pausa, conforme o contexto |
+
+Os controles devem ser consistentes e não executar ações incompatíveis simultaneamente.
+
+## 10.2. Interface de combate
+
+A tela de batalha deve apresentar:
+
+- Nome do inimigo.
+- HP do inimigo, quando apropriado.
+- HP atual e máximo do protagonista.
+- Barra ATB do protagonista.
+- Indicadores ATB dos inimigos, quando necessários.
+- Comandos de combate.
+- Habilidades disponíveis e seus tempos de recarga.
+- Quantidade de itens disponíveis.
+- Mensagens de dano, cura e efeitos de estado.
+
+A interface deve deixar claro quando o jogador pode agir e quando uma habilidade está indisponível.
+
+## 10.3. Minimapa
+
+O minimapa deve aparecer em um dos cantos da tela e representar os principais elementos próximos.
+
+Pode exibir:
+
+- Posição do jogador.
+- NPCs.
+- Inimigos.
+- Limites da região explorada.
+- Pontos de interesse, quando implementados.
+
+A representação deve ser proporcional ao mapa e permanecer legível durante a movimentação.
+
+---
+
+# 11. SISTEMA DE MAPAS E COLISÕES
+
+## 11.1. Exploração
+
+O jogador pode caminhar livremente pelos mapas, sem gravidade ou mecânicas de plataforma.
+
+A câmera acompanha o personagem e mantém sua posição próxima ao centro da tela, respeitando os limites do mapa.
+
+## 11.2. Mapas conectados
+
+As regiões devem ser conectadas por passagens, trilhas ou pontos de transição.
+
+A estrutura principal de progressão é:
+
+**Castelo → Primeira Floresta → Vilarejo Tranquilo → Floresta Profanada → Caverna Profunda → Topo da Montanha.**
+
+A transição entre áreas deve preservar os dados necessários do personagem e do progresso da aventura.
+
+## 11.3. Colisões
+
+O sistema de colisões deve impedir que o jogador atravesse:
+
+- Paredes.
+- Árvores e objetos sólidos.
+- Limites de cenário.
+- NPCs.
+- Inimigos que bloqueiam fisicamente o caminho, quando aplicável.
+
+As caixas de colisão devem ser independentes da aparência visual dos sprites, permitindo ajustes sem modificar as imagens.
+
+NPCs e inimigos móveis também devem respeitar as colisões e evitar atravessar uns aos outros.
+
+---
+
+# 12. SALVAMENTO E PERSISTÊNCIA
+
+O sistema de salvamento deve registrar os dados essenciais da aventura.
+
+Informações prioritárias:
+
+- Posição do jogador.
+- Região atual.
+- HP atual e máximo.
+- Nível e experiência.
+- Moedas.
+- Inventário e quantidades.
+- Arma equipada.
+- Armadura equipada.
+- Progresso de missões e chefes, quando implementado.
+
+O jogo deve permitir salvar manualmente em pontos apropriados e utilizar salvamento automático, conforme as regras da versão final.
+
+Ao carregar uma partida, os dados devem ser restaurados sem duplicar itens, perder equipamentos ou sobrescrever indevidamente o progresso.
+
+---
+
+# 13. REQUISITOS TÉCNICOS
+
+## 13.1. Tecnologias
+
+- **Linguagem:** Python.
+- **Biblioteca principal:** Pygame.
+- **Persistência:** banco de dados ou mecanismo de salvamento já utilizado pelo projeto.
+- **Gráficos:** arquivos de imagem em pixel art.
+- **Áudio:** música e efeitos sonoros, quando disponíveis.
+
+## 13.2. Organização dos sistemas
+
+O projeto deve manter responsabilidades separadas entre módulos, conforme a estrutura existente.
+
+Sistemas principais:
+
+- Personagem e atributos.
+- Inimigos e inteligência artificial.
+- Combate e ATB.
+- Inventário e itens.
+- Equipamentos.
+- NPCs e diálogos.
+- Mapas e colisões.
+- Interface.
+- Salvamento e carregamento.
+- Catálogo de itens e dados de inimigos.
+
+A organização deve facilitar a manutenção e permitir adicionar conteúdo sem reescrever sistemas já funcionais.
+
+## 13.3. Desempenho
+
+O jogo deve buscar uma execução estável próxima de 60 FPS em computadores compatíveis.
+
+Para isso, deve priorizar:
+
+- Uso adequado de grupos de sprites.
+- Reutilização de imagens carregadas.
+- Atualização eficiente de entidades.
+- Desenho restrito aos elementos visíveis na câmera.
+- Separação entre lógica de jogo e renderização.
+- Controle consistente do tempo e das barras ATB.
+
+A frequência de atualização do ATB deve depender do tempo decorrido, e não exclusivamente da quantidade de quadros por segundo, para que a velocidade do combate permaneça consistente.
+
+---
+
+# 14. BALANCEAMENTO E PROGRESSÃO
+
+A dificuldade deve crescer de maneira gradual.
+
+| Região | Dificuldade | Objetivo de progressão |
+|---|---|---|
+| Castelo do Rei Demônio | Muito baixa | Aprender controles e fundamentos |
+| Primeira Floresta | Baixa | Aprender combate, cura e recompensas |
+| Vilarejo Tranquilo | Área segura | Comprar itens e preparar equipamentos |
+| Floresta Profanada | Média | Lidar com veneno e inimigos especializados |
+| Caverna Profunda | Alta | Gerenciar ATB, controle e recursos |
+| Topo da Montanha | Muito alta | Aplicar todas as mecânicas contra o chefe final |
+
+O balanceamento deve considerar o nível esperado do jogador, os equipamentos normalmente disponíveis e a quantidade de itens que podem ser comprados antes de cada chefe.
+
+Os chefes devem apresentar padrões reconhecíveis e oportunidades para o jogador responder estrategicamente, em vez de depender apenas de atributos elevados.
+
+---
+
+# 15. ESCOPO DE DESENVOLVIMENTO
+
+A implementação deve ocorrer em etapas para reduzir erros e preservar os sistemas existentes.
+
+## Etapa 1 — Fundação
+
+- Movimentação e câmera.
+- Mapas e colisões.
+- Personagem e atributos.
+- Salvamento e carregamento.
+
+## Etapa 2 — Inventário e equipamentos
+
+- Categorias de itens.
+- Uso de consumíveis.
+- Equipamento de armas e armaduras.
+- Atualização dos atributos totais.
+- Integração com a loja.
+- Persistência dos itens e equipamentos.
+
+## Etapa 3 — Combate ATB
+
+- Barras individuais de ação.
+- Comandos de combate.
+- Ataques físicos.
+- Habilidades e recargas.
+- Itens durante as batalhas.
+- Inteligência artificial.
+- Fuga, vitória e derrota.
+
+## Etapa 4 — Conteúdo das regiões
+
+- Implementação dos inimigos de cada área.
+- Posicionamento de NPCs.
+- Recompensas e baús.
+- Conexões entre mapas.
+- Chefes e respectivas habilidades.
+
+## Etapa 5 — Interface e apresentação
+
+- Interface de combate.
+- Indicadores ATB.
+- Minimapa.
+- Diálogos.
+- Animações.
+- Efeitos sonoros e música.
+
+## Etapa 6 — Testes e ajustes
+
+- Verificar colisões.
+- Testar salvamento e carregamento.
+- Validar compras e consumo de itens.
+- Testar habilidades e efeitos de estado.
+- Ajustar dificuldade e recompensas.
+- Verificar estabilidade e desempenho.
+
+---
+
+# 16. CRITÉRIOS DE CONCLUSÃO
+
+A versão principal de Hunt Bird será considerada funcional quando:
+
+- O jogador conseguir explorar as regiões conectadas.
+- A câmera acompanhar o personagem corretamente.
+- As colisões impedirem atravessamentos indevidos.
+- NPCs puderem ser encontrados e utilizados para interação.
+- O inventário permitir selecionar e utilizar itens.
+- Armas e armaduras modificarem corretamente os atributos.
+- Compras atualizarem moedas e inventário.
+- O sistema de salvamento preservar o progresso.
+- As barras ATB controlarem corretamente o momento das ações.
+- O jogador e os inimigos puderem atacar, utilizar habilidades e consumir itens.
+- Os efeitos de estado funcionarem conforme suas regras.
+- Os chefes possuírem habilidades próprias e dificuldade apropriada.
+- A vitória final contra a Arara Azul permitir concluir a história principal.
+
+---
+
+# 17. RESUMO DO PROJETO
+
+Hunt Bird é um RPG 2D de fantasia e humor, desenvolvido em Python com Pygame, que combina exploração em visão superior, mapas conectados, progressão de personagem, inventário, equipamentos e combate ATB inspirado em Final Fantasy IV.
+
+A aventura começa no Castelo do Rei Demônio e passa pela Primeira Floresta, Vilarejo Tranquilo, Floresta Profanada, Caverna Profunda e Topo da Montanha.
+
+Cada região apresenta inimigos específicos e desafios progressivamente maiores. Os chefes principais são o Gato Esqueleto, o Cogumelo Titã, o Morcego Fantasma e a Arara Azul, responsável pelo roubo do SETH.
+
+O objetivo do desenvolvimento é construir uma experiência consistente, com sistemas integrados, progressão equilibrada e uma identidade própria, preservando o humor da história e a inspiração nos RPGs clássicos.
+
+**Diretriz central:** priorizar sistemas funcionais, combate estratégico em tempo ativo, exploração envolvente e integração confiável entre personagem, inventário, equipamentos, inimigos e salvamento.
