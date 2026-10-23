@@ -1,6 +1,7 @@
 import os
 import random
 import pygame
+from cores import *
 
 
 class NPC:
@@ -16,7 +17,7 @@ class NPC:
         velocidade=45,
         distancia_maxima=120,
         pode_andar=True,
-        cor=(80, 180, 100),
+        cor=VerdePrimavera,
         colisao_tamanho=(40, 40),
     ):
         self.nome = nome
@@ -70,10 +71,18 @@ class NPC:
         if not sprite:
             return
 
-        caminho = os.path.abspath(sprite)
-
-        if not os.path.isfile(caminho):
-            print(f"[NPC] Sprite não encontrado: {caminho}")
+        base = os.path.dirname(os.path.abspath(__file__))
+        candidatos = [os.path.abspath(sprite), os.path.join(base, sprite), os.path.join(base, "sprite principal", os.path.basename(sprite))]
+        caminho = next((c for c in candidatos if os.path.isfile(c)), None)
+        if caminho is None:
+            nome = os.path.basename(sprite).casefold()
+            for pasta_raiz, _, arquivos in os.walk(base):
+                achado = next((a for a in arquivos if a.casefold() == nome), None)
+                if achado:
+                    caminho = os.path.join(pasta_raiz, achado)
+                    break
+        if caminho is None:
+            print(f"[NPC] Sprite não encontrado: {sprite}")
             return
 
         pasta = os.path.dirname(caminho)
@@ -103,13 +112,10 @@ class NPC:
                 )
 
                 if not os.path.isfile(caminho_quadro):
-                    caminho_maiusculo = os.path.join(
-                        pasta,
-                        f"{letra}{numero}.PNG",
-                    )
-
-                    if os.path.isfile(caminho_maiusculo):
-                        caminho_quadro = caminho_maiusculo
+                    alvo = f"{letra}{numero}.png".casefold()
+                    encontrado = next((os.path.join(pasta, nome) for nome in os.listdir(pasta) if nome.casefold() == alvo), None)
+                    if encontrado:
+                        caminho_quadro = encontrado
                     else:
                         continue
 
@@ -365,7 +371,7 @@ class NPC:
 
             pygame.draw.circle(
                 tela,
-                (240, 200, 160),
+                AmêndoaClara,
                 (
                     pos_x + self.largura_sprite // 2,
                     pos_y + 12,
@@ -377,7 +383,7 @@ class NPC:
         texto_nome = fonte.render(
             self.nome,
             True,
-            (255, 255, 255),
+            Branco,
         )
 
         caixa_nome = texto_nome.get_rect(
@@ -390,7 +396,7 @@ class NPC:
 
         pygame.draw.rect(
             tela,
-            (30, 30, 30),
+            Preto,
             caixa_nome,
             border_radius=4,
         )
@@ -409,7 +415,7 @@ class NPC:
         texto = fonte.render(
             "APERTE ESPAÇO PARA INTERAGIR",
             True,
-            (255, 255, 255),
+            Branco,
         )
 
         caixa = texto.get_rect(
@@ -422,14 +428,14 @@ class NPC:
 
         pygame.draw.rect(
             tela,
-            (25, 25, 35),
+            AzulMeiaNoite,
             caixa,
             border_radius=5,
         )
 
         pygame.draw.rect(
             tela,
-            (230, 230, 230),
+            CinzaPrataClaro,
             caixa,
             width=1,
             border_radius=5,
@@ -510,14 +516,14 @@ class NPC:
 
         pygame.draw.rect(
             tela,
-            (20, 20, 30),
+            AzulMeiaNoite,
             caixa,
             border_radius=8,
         )
 
         pygame.draw.rect(
             tela,
-            (240, 240, 240),
+            BrancoAntigo,
             caixa,
             width=2,
             border_radius=8,
@@ -530,7 +536,7 @@ class NPC:
         nome = fonte_nome.render(
             self.nome,
             True,
-            (255, 220, 100),
+            AmareloClaro,
         )
         tela.blit(nome, (caixa.x + 16, caixa.y + 12))
 
@@ -553,7 +559,7 @@ class NPC:
                 imagem_linha = fonte_dialogo.render(
                     linha,
                     True,
-                    (255, 255, 255),
+                    Branco,
                 )
                 tela.blit(imagem_linha, (caixa.x + 16, y))
                 y += 25
@@ -561,7 +567,7 @@ class NPC:
         dica = fonte_dica.render(
             "ESPAÇO: continuar    ESC: fechar",
             True,
-            (190, 190, 190),
+            CinzaClaro,
         )
 
         tela.blit(
