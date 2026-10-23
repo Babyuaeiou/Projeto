@@ -43,6 +43,7 @@ mapa_atual = "mapa_inicial"
 
 objetos_colisao = []
 
+
 # =========================================================
 # JOGADOR
 # =========================================================
@@ -91,13 +92,13 @@ inventario.sincronizar_do_personagem(jogador)
 inimigos = [
     Inimigo(
         nome="gato esqueleto",
-        hpmaximo=22,
+        hpmaximo=1,
         dano=6,
         defesa=2,
         x=760,
         y=520,
-        xp_recompensa=18,
-        moedas_recompensa=10,
+        xp_recompensa=180000,
+        moedas_recompensa=100000,
         chefe=False,
         cor=MarromSela,
         sprite="gt1.png",
@@ -107,6 +108,7 @@ inimigos = [
         pode_andar=True
     ),
 ]
+
 
 # =========================================================
 # NPCs
@@ -202,8 +204,6 @@ def desenhar_texto(texto, x, y, cor=Branco, fonte_usada=None):
 # =========================================================
 
 def salvar_jogo():
-    # O inventário do personagem é a fonte principal; reconstrói a interface
-    # antes de salvar para não restaurar itens já consumidos em batalha.
     inventario.sincronizar_do_personagem(jogador)
 
     salvar_partida(
@@ -249,7 +249,7 @@ def desenhar_coordenadas():
 
 
 # =========================================================
-# MINIMAPA
+# MINIMAPA AMPLIADO AO REDOR DO JOGADOR
 # =========================================================
 
 def desenhar_minimapa():
@@ -274,45 +274,82 @@ def desenhar_minimapa():
         border_radius=5
     )
 
-    pygame.draw.rect(
-        tela,
-        CinzaArdósiaEscuro,
-        area
+    # Área do mundo exibida no minimapa.
+    regiao_largura = min(
+        LARGURA_TELA * 1.5,
+        mapa_largura
     )
 
-    escala_x = area.width / mapa_largura
-    escala_y = area.height / mapa_altura
+    regiao_altura = min(
+        ALTURA_TELA * 1.5,
+        mapa_altura
+    )
 
-    def posicao_minimapa(px, py):
-        return (
-            area.x + round(px * escala_x),
-            area.y + round(py * escala_y)
+    # Centraliza a região no jogador.
+    origem_x = jogador.x - regiao_largura / 2
+    origem_y = jogador.y - regiao_altura / 2
+
+    # Mantém a região dentro dos limites do mapa.
+    origem_x = max(
+        0,
+        min(mapa_largura - regiao_largura, origem_x)
+    )
+
+    origem_y = max(
+        0,
+        min(mapa_altura - regiao_altura, origem_y)
+    )
+
+    # Superfície que recebe os desenhos da região selecionada.
+    superficie_minimapa = pygame.Surface(
+        (
+            max(1, round(regiao_largura)),
+            max(1, round(regiao_altura))
         )
+    )
 
+    superficie_minimapa.fill(VerdeMar)
+
+    # Desenha os inimigos nessa superfície.
     for inimigo in inimigos:
-        if not inimigo.derrotado:
-            pygame.draw.circle(
-                tela,
-                VermelhoTijolo,
-                posicao_minimapa(inimigo.x, inimigo.y),
-                3
-            )
+        if getattr(inimigo, "derrotado", False):
+            continue
 
-    for npc in npcs:
-        pygame.draw.circle(
-            tela,
-            VerdePrimavera,
-            posicao_minimapa(npc.x, npc.y),
-            3
+        inimigo.desenhar(
+            superficie_minimapa,
+            origem_x,
+            origem_y
         )
 
-    pygame.draw.circle(
-        tela,
-        AzulDodger,
-        posicao_minimapa(jogador.x, jogador.y),
-        4
+    # Desenha os NPCs nessa superfície.
+    for npc in npcs:
+        npc.desenhar(
+            superficie_minimapa,
+            origem_x,
+            origem_y,
+            jogador
+        )
+
+    # Desenha o personagem normalmente.
+    # Não desenha a bolinha azul adicional.
+    jogador.desenhar(
+        superficie_minimapa,
+        origem_x,
+        origem_y
     )
 
+    # Redimensiona a região para caber no minimapa.
+    imagem_minimapa = pygame.transform.scale(
+        superficie_minimapa,
+        (area.width, area.height)
+    )
+
+    tela.blit(
+        imagem_minimapa,
+        area.topleft
+    )
+
+    # Borda do minimapa.
     pygame.draw.rect(
         tela,
         CinzaPrataClaro,
@@ -330,7 +367,7 @@ def desenhar_mundo(camera_x, camera_y):
     tela.fill(VerdeMar)
 
     for inimigo in inimigos:
-        if not inimigo.derrotado:
+        if not getattr(inimigo, "derrotado", False):
             inimigo.desenhar(
                 tela,
                 camera_x,
@@ -385,30 +422,104 @@ def desenhar_mundo(camera_x, camera_y):
 
 def desenhar_tela_atributos():
     painel = pygame.Rect(130, 90, 540, 420)
-    pygame.draw.rect(tela, AzulMeiaNoite, painel, border_radius=10)
-    pygame.draw.rect(tela, Dourado, painel, 2, border_radius=10)
-    desenhar_texto("ATRIBUTOS DO PERSONAGEM", 160, 112, Dourado, fonte_grande)
-    desenhar_texto(f"Pontos disponíveis: {jogador.pontos_atributo}", 160, 155)
+
+    pygame.draw.rect(
+        tela,
+        AzulMeiaNoite,
+        painel,
+        border_radius=10
+    )
+
+    pygame.draw.rect(
+        tela,
+        Dourado,
+        painel,
+        2,
+        border_radius=10
+    )
+
+    desenhar_texto(
+        "ATRIBUTOS DO PERSONAGEM",
+        160,
+        112,
+        Dourado,
+        fonte_grande
+    )
+
+    desenhar_texto(
+        f"Pontos disponíveis: {jogador.pontos_atributo}",
+        160,
+        155
+    )
 
     atributos = [
-        ("vitalidade", "Vitalidade", f"HP máximo: {jogador.hpmaximo}", "+5 HP por ponto"),
-        ("forca", "Força", f"Ataque: {jogador.danototal}", "+2 ataque por ponto"),
-        ("defesa", "Defesa", f"Defesa: {jogador.defesatotal}", "+1 defesa por ponto"),
-        ("agilidade", "Agilidade", f"Velocidade ATB: {int((jogador.velocidade - 1) * 100)}% bônus", "+1,5% por ponto; máximo +30%"),
+        (
+            "vitalidade",
+            "Vitalidade",
+            f"HP máximo: {jogador.hpmaximo}",
+            "+5 HP por ponto"
+        ),
+        (
+            "forca",
+            "Força",
+            f"Ataque: {jogador.danototal}",
+            "+2 ataque por ponto"
+        ),
+        (
+            "defesa",
+            "Defesa",
+            f"Defesa: {jogador.defesatotal}",
+            "+1 defesa por ponto"
+        ),
+        (
+            "agilidade",
+            "Agilidade",
+            f"Velocidade ATB: {int((jogador.velocidade - 1) * 100)}% bônus",
+            "+1,5% por ponto; máximo +30%"
+        ),
     ]
+
     for indice, (chave, nome, valor, descricao) in enumerate(atributos):
         y = 195 + indice * 52
         selecionado = indice == atributo_cursor
         cor = Dourado if selecionado else Branco
         prefixo = "> " if selecionado else "  "
         pontos = jogador.atributos_distribuidos.get(chave, 0)
-        desenhar_texto(f"{prefixo}{nome}: {pontos}/{jogador.limite_atributo}", 165, y, cor)
-        desenhar_texto(valor, 385, y)
-        desenhar_texto(descricao, 185, y + 22, CinzaClaro)
 
-    desenhar_texto("Setas: escolher | Z/Enter: investir ponto | P/Esc: fechar", 160, 445, CinzaClaro)
+        desenhar_texto(
+            f"{prefixo}{nome}: {pontos}/{jogador.limite_atributo}",
+            165,
+            y,
+            cor
+        )
+
+        desenhar_texto(
+            valor,
+            385,
+            y
+        )
+
+        desenhar_texto(
+            descricao,
+            185,
+            y + 22,
+            CinzaClaro
+        )
+
+    desenhar_texto(
+        "Setas: escolher | Z/Enter: investir ponto | P/Esc: fechar",
+        160,
+        445,
+        CinzaClaro
+    )
+
     if mensagem_atributos:
-        desenhar_texto(mensagem_atributos, 160, 475, Dourado)
+        desenhar_texto(
+            mensagem_atributos,
+            160,
+            475,
+            Dourado
+        )
 
 
 # =========================================================
@@ -484,11 +595,13 @@ def comprar_item():
         return
 
     inventario.sincronizar_do_personagem(jogador)
+
     if not inventario.adicionar(item_id, 1):
         return
 
     inventario.sincronizar_para_personagem(jogador)
     jogador.moedas -= preco
+
     salvar_jogo()
 
 
@@ -535,7 +648,7 @@ while rodando:
 
             if batalha.terminada:
                 if batalha.vitoria:
-                    # Batalha já concede XP e moedas ao confirmar a vitória.
+                    # A batalha já concede XP e moedas.
                     batalha.inimigo.derrotado = True
 
                 elif batalha.derrota:
@@ -596,23 +709,57 @@ while rodando:
 
         elif atributos_abertos:
             if evento.type == pygame.KEYDOWN:
-                if evento.key in (pygame.K_ESCAPE, pygame.K_p):
+
+                if evento.key in (
+                    pygame.K_ESCAPE,
+                    pygame.K_p
+                ):
                     atributos_abertos = False
-                elif evento.key in (pygame.K_UP, pygame.K_w):
-                    atributo_cursor = (atributo_cursor - 1) % 4
-                elif evento.key in (pygame.K_DOWN, pygame.K_s):
-                    atributo_cursor = (atributo_cursor + 1) % 4
-                elif evento.key in (pygame.K_z, pygame.K_RETURN):
-                    nomes_atributos = ("vitalidade", "forca", "defesa", "agilidade")
+
+                elif evento.key in (
+                    pygame.K_UP,
+                    pygame.K_w
+                ):
+                    atributo_cursor = (
+                        atributo_cursor - 1
+                    ) % 4
+
+                elif evento.key in (
+                    pygame.K_DOWN,
+                    pygame.K_s
+                ):
+                    atributo_cursor = (
+                        atributo_cursor + 1
+                    ) % 4
+
+                elif evento.key in (
+                    pygame.K_z,
+                    pygame.K_RETURN
+                ):
+                    nomes_atributos = (
+                        "vitalidade",
+                        "forca",
+                        "defesa",
+                        "agilidade"
+                    )
+
                     nome_atributo = nomes_atributos[atributo_cursor]
+
                     if jogador.distribuir_ponto(nome_atributo):
-                        mensagem_atributos = f"Ponto aplicado em {nome_atributo.capitalize()}!"
+                        mensagem_atributos = (
+                            f"Ponto aplicado em {nome_atributo.capitalize()}!"
+                        )
                         salvar_jogo()
                     else:
-                        mensagem_atributos = "Sem pontos disponíveis ou atributo no limite."
+                        mensagem_atributos = (
+                            "Sem pontos disponíveis ou atributo no limite."
+                        )
 
         elif inventario.aberto:
-            inventario.tratar_evento(evento, jogador)
+            inventario.tratar_evento(
+                evento,
+                jogador
+            )
 
         elif evento.type == pygame.KEYDOWN:
 
@@ -646,16 +793,26 @@ while rodando:
                             npc_dialogo_atual = npc
                             break
 
-    # Atualiza as barras ATB mesmo quando o jogador não pressiona teclas.
+    # =====================================================
+    # ATUALIZAÇÃO DA BATALHA
+    # =====================================================
+
     if batalha is not None:
         batalha.atualizar(dt)
+
         if batalha.terminada:
             if batalha.vitoria:
                 batalha.inimigo.derrotado = True
+
             elif batalha.derrota:
                 jogador.hp = jogador.hpmaximo
                 jogador.x, jogador.y = 650, 150
-                jogador.colisao.topleft = (round(jogador.x), round(jogador.y))
+
+                jogador.colisao.topleft = (
+                    round(jogador.x),
+                    round(jogador.y)
+                )
+
             batalha = None
             salvar_jogo()
 
@@ -668,12 +825,13 @@ while rodando:
         and batalha is None
         and not loja_aberta
         and not inventario.aberto
+        and not atributos_abertos
         and npc_dialogo_atual is None
     ):
         retangulos_inimigos = [
             inimigo.colisao
             for inimigo in inimigos
-            if not inimigo.derrotado
+            if not getattr(inimigo, "derrotado", False)
         ]
 
         obstaculos_npc = (
@@ -696,7 +854,7 @@ while rodando:
         ]
 
         for inimigo in inimigos:
-            if inimigo.derrotado:
+            if getattr(inimigo, "derrotado", False):
                 continue
 
             inimigo.atualizar(
@@ -725,7 +883,7 @@ while rodando:
 
         for inimigo in inimigos:
             if (
-                not inimigo.derrotado
+                not getattr(inimigo, "derrotado", False)
                 and jogador.colisao.colliderect(
                     inimigo.colisao
                 )
