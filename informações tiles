@@ -89,6 +89,34 @@ Use esta organização:
 | Colisões        | Object Layer         |
 | NPCs e inimigos | Object Layer         |
 
+
+No Tiled Map Editor, para abrir a tela onde aparecem seus tiles (Tilesets), faça o seguinte:
+
+### Método 1 — Pelo menu
+
+1. Abra seu mapa no Tiled.
+2. Clique em View (Exibir).
+3. Entre em Views and Toolbars.
+4. Marque Tilesets.
+
+[Make a Tiled autotile tileset with AI and the Terrain Brush | SpriteCook](https://images.openai.com/static-rsc-4/87j-1M4ysok-7Juo7yNl6bMwReDmE6dgpYDBVb0CoNu-W5SS3MitehVJa4hzqaneFlcB36_hE-VPHnhh-k1olywQdghaCgCFkTy_-5nhvDQtQcLycI81Ri-D6Le_q2sVkzif44phDIDENOuPKRD-mUP1i3jX86SyUD_-pd2sE6g?purpose=inline)
+
+[spritecook.ai](https://www.spritecook.ai/blog/tiled-autotile-tileset?utm_source=chatgpt.com)
+
+### Método 2 — Atalho
+
+Tente pressionar `Alt + 3` para abrir o painel de Tilesets.
+
+### Se ainda não aparecer
+
+Procure na interface uma aba chamada Tilesets, geralmente localizada na lateral direita.
+
+[Building a Multiplayer RPG with Meteor & Flutter (2): Build maps with Tiled & add objects | by Matt E. | Medium](https://images.openai.com/static-rsc-4/3QnulUxlCNCIISqbRWG5inU3OzQiXakVwgUGU-wrFuQzAl8ZNyTC3zwwHjD3ucg4W1_FmlRYLAMTZgw8nmlG_HGf818oGI_7EK-X_ZYSjJY_z1XX-lrsCbjqhKtH8KC6zEITQQK9kHSV7LR47pvoT-ebRVq7zaAjgJ_LU5WQc8U?purpose=inline)
+
+[melmouk.medium.com](https://melmouk.medium.com/building-a-multiplayer-rpg-with-meteor-flutter-2-build-maps-with-tiled-add-objects-e34f668bf28f?utm_source=chatgpt.com)
+
+Dica: se você estiver usando Collection of Images, é nesse painel que aparecerão todos os PNGs adicionados ao seu Tileset.
+
 Importante: para seu Pygame, será necessário interpretar os objetos do mapa e desenhar os sprites respeitando suas posições e dimensões originais.
 
 Assim você não fica limitado a sprites de 32×32 e consegue construir cenários muito mais elaborados.
