@@ -1,0 +1,94 @@
+Vou te ensinar pelo método que resolve seu problema de verdade. Você quer colocar PNGs de tamanhos diferentes no Tiled sem precisar redimensionar, cortar ou adicionar espaços transparentes.
+
+A solução é usar Collection of Images em vez de Based on Tileset Image.
+
+## 1. Como adicionar PNGs de qualquer tamanho
+
+[Introduction — Tiled 1.12.2 documentation](https://images.openai.com/static-rsc-4/WO9QAsctBLTFxv4kfxiCOvNJmkZCCsPAWX_FnCS6fRFzjQ_zLQkinnN9M0PZeBZSX_J4wA3m-w55QVk7aRTGfbJpCSFEIfbHXFpedK3k0Q859N9t7sy43oiXalS7y2W3NxTHeyeJ-fCNpwpOFRQHTiiM9futZ7vi3c7zSFQ-kFY?purpose=inline)
+
+[doc.mapeditor.org](https://doc.mapeditor.org/en/latest/manual/introduction/?utm_source=chatgpt.com)
+
+Faça exatamente assim:
+
+1. Abra o Tiled.
+2. Clique em `File > New > New Tileset`.
+3. Escolha Collection of Images.
+4. Dê um nome ao Tileset.
+5. Clique em OK.
+6. Abra o Tileset criado.
+7. Clique em `Add Tiles` (Adicionar imagens).
+8. Selecione vários arquivos PNG de uma vez.
+
+
+
+Resultado
+
+&#x20;Cada PNG será um tile individual, com suas próprias dimensões.
+
+
+
+Por exemplo:
+
+| Arquivo     | Dimensão |
+| ----------- | -------- |
+| Grama.png   | 32×32    |
+| Arvore.png  | 96×128   |
+| Casa.png    | 160×128  |
+| Pedra.png   | 45×57    |
+| Castelo.png | 300×250  |
+
+Não precisa deixar todos com 32×32!
+
+## 2. Como colocar esses sprites no mapa
+
+[Object Placement Preview on Hover - Tiled Map Editor by Thorbjørn Lindeijer](https://images.openai.com/static-rsc-4/sEyQ0Y_DROM18IIDG70cop6CLN2DCuidr7ky4luwvx4TNmRzPFaCJgwWEyhjA4wNfYpSB9vma7NF5jhpVT0jGiq6oUkDYQE-Xca9LDOT4eVJ0AAoBoqYyA5Js8Hvw6ovQx1CF2YmWD1n2lZI6Ri1OhQ0gRgrek5w7wkAeb2VoDc?purpose=inline)
+
+[thorbjorn.itch.io](https://thorbjorn.itch.io/tiled/devlog/40807/object-placement-preview-on-hover?utm_source=chatgpt.com)
+
+1. Crie uma `Object Layer`.
+2. Selecione a ferramenta de inserção de objetos de tile.
+3. Escolha o sprite no painel de Tilesets.
+4. Clique no mapa para posicioná-lo.
+5. Use a ferramenta de seleção para movimentar o objeto.
+
+Você poderá posicionar árvores, casas, pedras e outros sprites livremente.
+
+## 3. Tutoriais completos
+
+Encontrei estes materiais:
+
+Tutorial oficial do Tiled
+
+Documentação sobre imagens de diferentes tamanhos, camadas e objetos.
+
+[Collection of Images — documentação oficial](https://docs.mapeditor.org/en/stable/manual/editing-tilesets/?utm_source=chatgpt.com)[Trabalhando com Layers e Objects](https://doc.mapeditor.org/en/latest/manual/layers/?utm_source=chatgpt.com)
+
+Tutorial em vídeo — criação de mapas
+
+[Building a Multiplayer RPG with Meteor & Flutter (2): Build maps with Tiled & add objects | by Matt E. | Medium](https://images.openai.com/static-rsc-4/uaX244_mcRgeLXwmOvdQj43123nFQHJD98fsDLZetewTVJbG8L16L2LlapwdRcXV-HvTMZWiZV3nnSYwEVK8i_YxWRaYQiRBonUJ72x2oFDNOIUPQeoWj8JyOVFe6ezAmAzjc1MBJPLZsa6b3G7Pbz1w54PcQrt2Wt13X3h0uhI?purpose=inline)
+
+[melmouk.medium.com](https://melmouk.medium.com/building-a-multiplayer-rpg-with-meteor-flutter-2-build-maps-with-tiled-add-objects-e34f668bf28f?utm_source=chatgpt.com)
+
+[GameFromScratch — série completa de tutoriais](https://gamefromscratch.com/tiled-map-editor-tutorial-series/?utm_source=chatgpt.com)
+
+Tutorial de mapas estilo Pokémon
+
+[Pokemon — Map Creation with Tiled Map Editor](https://chriscourses.com/courses/pokemon/videos/download-tiled-and-import-a-tileset?utm_source=chatgpt.com)
+
+## 4. Minha recomendação para seu RPG
+
+Use esta organização:
+
+| Tipo            | Método               |
+| --------------- | -------------------- |
+| Grama e chão    | Tile Layer           |
+| Caminhos        | Tile Layer           |
+| Árvores grandes | Collection of Images |
+| Casas           | Collection of Images |
+| Pedras grandes  | Collection of Images |
+| Colisões        | Object Layer         |
+| NPCs e inimigos | Object Layer         |
+
+Importante: para seu Pygame, será necessário interpretar os objetos do mapa e desenhar os sprites respeitando suas posições e dimensões originais.
+
+Assim você não fica limitado a sprites de 32×32 e consegue construir cenários muito mais elaborados.
