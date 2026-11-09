@@ -27,33 +27,53 @@ class Inventario:
     # =====================================================
 
     def sincronizar_do_personagem(self, jogador):
-        """Copia os itens do personagem para os espaços do inventário."""
-        self.espacos = [None] * self.TOTAL_ESPACOS
+        restantes = {
+            str(item_id): max(0, int(quantidade))
+            for item_id, quantidade in jogador.inventario.items()
+            if int(quantidade) > 0
+        }
+        novos_espacos = [None] * self.TOTAL_ESPACOS
 
-        for item_id, quantidade in jogador.inventario.items():
-            restante = int(quantidade)
-
+        for indice, slot in enumerate(self.espacos):
+            if not slot:
+                continue
+            item_id = slot.get("item_id")
             item = catalogo.obter(item_id)
-            limite_pilha = (
-                max(1, int(item.max_pilha))
-                if item else 1
+            if item is None or restantes.get(item_id, 0) <= 0:
+                continue
+            limite_pilha = max(1, int(item.max_pilha))
+            quantidade = min(
+                int(slot.get("quantidade", 1)),
+                limite_pilha,
+                restantes[item_id],
             )
+            if quantidade > 0:
+                novos_espacos[indice] = {
+                    "item_id": item_id,
+                    "quantidade": quantidade,
+                }
+                restantes[item_id] -= quantidade
 
+        for item_id, quantidade_total in restantes.items():
+            item = catalogo.obter(item_id)
+            if item is None:
+                continue
+            limite_pilha = max(1, int(item.max_pilha))
+            restante = quantidade_total
             while restante > 0:
                 try:
-                    indice = self.espacos.index(None)
+                    indice = novos_espacos.index(None)
                 except ValueError:
                     self.mensagem = "Inventário cheio."
-                    return
-
+                    break
                 quantidade_pilha = min(restante, limite_pilha)
-
-                self.espacos[indice] = {
+                novos_espacos[indice] = {
                     "item_id": item_id,
-                    "quantidade": quantidade_pilha
+                    "quantidade": quantidade_pilha,
                 }
-
                 restante -= quantidade_pilha
+
+        self.espacos = novos_espacos
 
     def sincronizar_para_personagem(self, jogador):
         """Copia os espaços do inventário para o personagem."""
@@ -180,12 +200,17 @@ class Inventario:
             if self.cursor + self.COLUNAS < self.TOTAL_ESPACOS:
                 self.cursor += self.COLUNAS
 
-        # Seleciona ou desmarca um espaço.
         elif evento.key == pygame.K_z:
-            if self.espaco_selecionado == self.cursor:
-                self.espaco_selecionado = None
-            else:
+            if self.espaco_selecionado is None:
                 self.espaco_selecionado = self.cursor
+            else:
+                primeiro = self.espaco_selecionado
+                segundo = self.cursor
+                self.espacos[primeiro], self.espacos[segundo] = self.espacos[segundo], self.espacos[primeiro]
+                self.espaco_selecionado = None
+                self.mensagem = "Itens trocados de lugar."
+                if jogador is not None:
+                    self.sincronizar_para_personagem(jogador)
 
         # Usa ou equipa o item selecionado pelo cursor.
         elif evento.key == pygame.K_x:
@@ -283,128 +308,67 @@ class Inventario:
         if not self.aberto:
             return
 
-        largura = tela.get_width()
-        altura = tela.get_height()
+        largura, altura = tela.get_size()
+        painel = pygame.Rect(35, 25, largura - 70, altura - 50)
+        pygame.draw.rect(tela, AzulMeiaNoite, painel, border_radius=10)
+        pygame.draw.rect(tela, Dourado, painel, 2, border_radius=10)
 
-        painel = pygame.Rect(
-            40, 35, largura - 80, altura - 70
-        )
+        tela.blit(self.fonte.render("INVENTÁRIO", True, Dourado), (55, 38))
+        tela.blit(self.fonte_menor.render("Mochila", True, Branco), (58, 83))
 
-        pygame.draw.rect(
-            tela, AzulMeiaNoite, painel, border_radius=10
-        )
-        pygame.draw.rect(
-            tela, CinzaArdósiaClaro, painel, 3, border_radius=10
-        )
-
-        titulo = self.fonte.render(
-            "INVENTÁRIO", True, Dourado
-        )
-        tela.blit(titulo, (60, 48))
-
-        inicio_x = 60
-        inicio_y = 95
+        inicio_x = 58
+        inicio_y = 108
         passo = self.tamanho_espaco + self.intervalo
 
         for indice in range(self.TOTAL_ESPACOS):
-            linha = indice // self.COLUNAS
-            coluna = indice % self.COLUNAS
+            if indice < self.ESPACOS_MOCHILA:
+                linha = indice // self.COLUNAS
+                coluna = indice % self.COLUNAS
+                x = inicio_x + coluna * passo
+                y = inicio_y + linha * passo
+            else:
+                coluna = indice - self.ESPACOS_MOCHILA
+                x = inicio_x + coluna * passo
+                y = 310
 
-            x = inicio_x + coluna * passo
-            y = inicio_y + linha * passo
-
-            if indice >= self.ESPACOS_MOCHILA:
-                y += 15
-
-            retangulo = pygame.Rect(
-                x, y, self.tamanho_espaco, self.tamanho_espaco
-            )
-
-            cor = (
-                CinzaArdósiaEscuro
-                if indice < self.ESPACOS_MOCHILA
-                else VerdeFloresta
-            )
-
-            pygame.draw.rect(
-                tela, cor, retangulo, border_radius=4
-            )
-            pygame.draw.rect(
-                tela, CinzaArdósiaClaro,
-                retangulo, 1, border_radius=4
-            )
+            retangulo = pygame.Rect(x, y, self.tamanho_espaco, self.tamanho_espaco)
+            cor_fundo = CinzaArdósiaEscuro if indice < self.ESPACOS_MOCHILA else AzulArdósiaEscuro
+            pygame.draw.rect(tela, cor_fundo, retangulo, border_radius=5)
+            pygame.draw.rect(tela, CinzaArdósiaClaro, retangulo, 1, border_radius=5)
 
             slot = self.espacos[indice]
-
             if slot:
                 item = catalogo.obter(slot.get("item_id"))
-
                 if item:
-                    nome = self.fonte_menor.render(
-                        item.nome[:7], True, BrancoAntigo
-                    )
-                    tela.blit(nome, (x + 3, y + 5))
-
-                    quantidade = slot.get("quantidade", 1)
-
+                    nome = self.fonte_menor.render(item.nome[:8], True, BrancoAntigo)
+                    tela.blit(nome, (x + 3, y + 7))
+                    quantidade = int(slot.get("quantidade", 1))
                     if quantidade > 1:
-                        texto_qtd = self.fonte_menor.render(
-                            str(quantidade),
-                            True,
-                            AmareloClaro
-                        )
+                        texto_qtd = self.fonte_menor.render(str(quantidade), True, AmareloClaro)
                         tela.blit(texto_qtd, (x + 34, y + 29))
 
-            # Cursor atual.
             if indice == self.cursor:
-                pygame.draw.rect(
-                    tela, Dourado,
-                    retangulo, 3, border_radius=4
-                )
-
-            # Espaço selecionado com Z.
+                pygame.draw.rect(tela, Dourado, retangulo, 3, border_radius=5)
             if indice == self.espaco_selecionado:
-                pygame.draw.rect(
-                    tela, VerdePrimavera,
-                    retangulo, 3, border_radius=4
-                )
+                pygame.draw.rect(tela, VerdePrimavera, retangulo, 3, border_radius=5)
 
-        # Equipamentos atuais.
+        painel_equipamentos = pygame.Rect(555, 80, 185, 270)
+        pygame.draw.rect(tela, AzulArdósiaEscuro, painel_equipamentos, border_radius=7)
+        pygame.draw.rect(tela, CinzaArdósiaClaro, painel_equipamentos, 1, border_radius=7)
+        tela.blit(self.fonte_menor.render("EQUIPAMENTOS", True, Dourado), (568, 94))
+
         if jogador is not None:
-            arma = catalogo.obter(
-                jogador.equipamentos.get("arma")
-            )
-            armadura = catalogo.obter(
-                jogador.equipamentos.get("armadura")
-            )
+            for indice, (chave, titulo) in enumerate((("arma", "Arma"), ("armadura", "Armadura"))):
+                y = 132 + indice * 105
+                caixa = pygame.Rect(570, y, 150, 76)
+                pygame.draw.rect(tela, CinzaArdósiaEscuro, caixa, border_radius=5)
+                pygame.draw.rect(tela, Dourado, caixa, 1, border_radius=5)
+                equipado = catalogo.obter(jogador.equipamentos.get(chave))
+                tela.blit(self.fonte_menor.render(titulo, True, Branco), (580, y + 7))
+                nome = equipado.nome if equipado else "Vazio"
+                tela.blit(self.fonte_menor.render(nome[:15], True, AmareloClaro), (580, y + 34))
 
-            nome_arma = arma.nome if arma else "Nenhuma"
-            nome_armadura = armadura.nome if armadura else "Nenhuma"
-
-            equipamento = (
-                f"Arma: {nome_arma} | Armadura: {nome_armadura}"
-            )
-
-            tela.blit(
-                self.fonte_menor.render(
-                    equipamento, True, SedaDeMilho
-                ),
-                (60, altura - 100)
-            )
-
-        ajuda = self.fonte_menor.render(
-            "Setas: mover | Z: selecionar | X: usar/equipar | E/ESC: fechar",
-            True,
-            CinzaPrataClaro
-        )
-        tela.blit(ajuda, (60, altura - 72))
-
+        tela.blit(self.fonte_menor.render("Barra rápida", True, Branco), (58, 286))
+        tela.blit(self.fonte_menor.render("Setas: mover | Z: selecionar/trocar | X: usar/equipar | E/ESC: fechar", True, CinzaPrataClaro), (58, altura - 67))
         if self.mensagem:
-            tela.blit(
-                self.fonte_menor.render(
-                    self.mensagem[:75],
-                    True,
-                    AmareloDouradoClaro
-                ),
-                (60, altura - 48)
-            )
+            tela.blit(self.fonte_menor.render(self.mensagem[:75], True, AmareloDouradoClaro), (58, altura - 43))
