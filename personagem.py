@@ -1138,34 +1138,51 @@ class Batalha:
 
     def desenhar(self, tela):
         largura, altura = tela.get_size()
-        tela.fill(AzulMeiaNoite)
-        pygame.draw.rect(tela, AzulArdósiaEscuro, (0, altura // 2, largura, altura // 2))
+        tela.fill((174, 211, 173))
+        pygame.draw.rect(tela, (224, 235, 203), (0, 0, largura, altura // 2))
+        pygame.draw.ellipse(tela, (130, 171, 122), (largura // 2 - 210, 145, 280, 65))
+        pygame.draw.ellipse(tela, (130, 171, 122), (largura // 2 + 40, 245, 220, 50))
 
-        tela.blit(self.fonte_titulo.render(self.inimigo.nome, True, Branco), (40, 35))
-        tela.blit(self.fonte.render(f"HP {max(0, self.inimigo.hp)}/{self.inimigo.hpmaximo}", True, Branco), (40, 82))
-        self._desenhar_barra(tela, 40, 110, largura - 80, 18, self.inimigo.hp, self.inimigo.hpmaximo, VermelhoTijolo)
-        tela.blit(self.fonte.render("ATB do inimigo", True, Branco), (40, 145))
-        self._desenhar_barra(tela, 40, 172, largura - 80, 12, self.barra_inimigo, self.ATB_MAXIMO, Dourado)
+        painel_inimigo = pygame.Rect(largura - 310, 28, 275, 92)
+        pygame.draw.rect(tela, BrancoAntigo, painel_inimigo, border_radius=10)
+        pygame.draw.rect(tela, AzulMeiaNoite, painel_inimigo, 2, border_radius=10)
+        tela.blit(self.fonte.render(self.inimigo.nome, True, Preto), (painel_inimigo.x + 14, painel_inimigo.y + 10))
+        tela.blit(self.fonte.render(f"HP {max(0, self.inimigo.hp)}/{self.inimigo.hpmaximo}", True, Preto), (painel_inimigo.x + 14, painel_inimigo.y + 39))
+        self._desenhar_barra(tela, painel_inimigo.x + 14, painel_inimigo.y + 66, 245, 12, self.inimigo.hp, self.inimigo.hpmaximo, VerdePrimavera)
 
-        painel = pygame.Rect(30, altura - 225, largura - 60, 190)
-        pygame.draw.rect(tela, AzulMeiaNoite, painel, border_radius=8)
-        pygame.draw.rect(tela, Dourado, painel, 2, border_radius=8)
-        tela.blit(self.fonte.render(f"{self.jogador.nome}  |  HP {self.jogador.hp}/{self.jogador.hpmaximo}", True, Branco), (48, altura - 210))
-        tela.blit(self.fonte.render("ATB do jogador", True, Branco), (48, altura - 178))
-        self._desenhar_barra(tela, 48, altura - 154, largura - 96, 14, self.barra_jogador, self.ATB_MAXIMO, VerdePrimavera)
+        sprite_inimigo = getattr(self.inimigo, "sprite_atual", None)
+        if sprite_inimigo is not None:
+            tela.blit(sprite_inimigo, (largura // 2 - 20, 145))
+        sprite_jogador = getattr(self.jogador, "sprite_atual", None)
+        if sprite_jogador is not None:
+            tela.blit(sprite_jogador, (90, 225))
 
-        colunas = [48, largura // 2 + 10]
+        painel_jogador = pygame.Rect(25, 285, 300, 88)
+        pygame.draw.rect(tela, BrancoAntigo, painel_jogador, border_radius=10)
+        pygame.draw.rect(tela, AzulMeiaNoite, painel_jogador, 2, border_radius=10)
+        tela.blit(self.fonte.render(self.jogador.nome, True, Preto), (panel_x := painel_jogador.x + 14, painel_jogador.y + 9))
+        tela.blit(self.fonte.render(f"HP {max(0, self.jogador.hp)}/{self.jogador.hpmaximo}", True, Preto), (panel_x, painel_jogador.y + 38))
+        self._desenhar_barra(tela, panel_x, painel_jogador.y + 64, 270, 12, self.jogador.hp, self.jogador.hpmaximo, VerdePrimavera)
+
+        painel_comandos = pygame.Rect(25, altura - 175, largura - 50, 150)
+        pygame.draw.rect(tela, BrancoAntigo, painel_comandos, border_radius=10)
+        pygame.draw.rect(tela, AzulMeiaNoite, painel_comandos, 3, border_radius=10)
+        tela.blit(self.fonte.render(self.mensagem[:90], True, Preto), (painel_comandos.x + 18, painel_comandos.y + 12))
+
         for i, opcao in enumerate(self.opcoes):
             selecionada = i == self.opcao_selecionada and self.jogador_pronto
-            cor = Dourado if selecionada else CinzaPrataClaro
-            x = colunas[i % 2]
-            y = altura - 125 + (i // 2) * 30
-            marcador = "> " if selecionada else "  "
+            cor = AzulDodger if selecionada else Preto
+            x = painel_comandos.x + 28 + (i % 2) * 350
+            y = painel_comandos.y + 58 + (i // 2) * 38
+            marcador = "▶ " if selecionada else "   "
             tela.blit(self.fonte.render(marcador + opcao, True, cor), (x, y))
 
-        cor_mensagem = Dourado if self.jogador_pronto else Branco
-        tela.blit(self.fonte.render(self.mensagem[:95], True, cor_mensagem), (40, altura - 265))
+        if not self.jogador_pronto and self.ativa:
+            tela.blit(self.fonte.render("Aguardando sua vez...", True, AzulMeiaNoite), (largura - 250, altura - 205))
+
         if self.terminada:
             resultado = "VITÓRIA!" if self.vitoria else ("DERROTA!" if self.derrota else "FUGA!")
             texto = self.fonte_titulo.render(resultado, True, Dourado)
+            fundo = pygame.Rect(0, altura // 2 - 35, largura, 75)
+            pygame.draw.rect(tela, AzulMeiaNoite, fundo)
             tela.blit(texto, texto.get_rect(center=(largura // 2, altura // 2)))
