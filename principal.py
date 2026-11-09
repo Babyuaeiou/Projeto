@@ -12,6 +12,7 @@ from banco import (
 from inventario import Inventario
 from item import catalogo
 from npc import NPC
+from gerenciador_inimigos import GerenciadorInimigos
 
 
 # =========================================================
@@ -89,28 +90,9 @@ inventario.sincronizar_do_personagem(jogador)
 # INIMIGOS
 # =========================================================
 
-inimigos = [
-    Inimigo(
-        nome="gato esqueleto",
-        hpmaximo=1,
-        dano=6,
-        defesa=2,
-        x=760,
-        y=520,
-        xp_recompensa=180000,
-        moedas_recompensa=100000,
-        chefe=False,
-        cor=MarromSela,
-        sprite="gt1.png",
-        tamanho_sprite=(64, 64),
-        velocidade_movimento=45,
-        distancia_maxima=150,
-        pode_andar=True
-    ),
-]
+inimigos = []
 
 
-# =========================================================
 # NPCs
 # =========================================================
 
@@ -150,6 +132,9 @@ npcs = [
 ]
 
 
+gerenciador_inimigos = GerenciadorInimigos(mapa_atual, mapa_largura, mapa_altura)
+inimigos = gerenciador_inimigos.carregar(jogador, objetos_colisao, npcs)
+
 # =========================================================
 # ESTADO DO JOGO
 # =========================================================
@@ -159,10 +144,12 @@ npc_dialogo_atual = None
 
 loja_aberta = False
 loja_cursor = 0
+loja_scroll = 0
 mostrar_coordenadas = False
 atributos_abertos = False
 atributo_cursor = 0
 mensagem_atributos = ""
+invencibilidade_fuga = 0.0
 
 itens_loja = [
     ("pocao_pequena", 10),
@@ -527,61 +514,33 @@ def desenhar_tela_atributos():
 # =========================================================
 
 def desenhar_loja():
-    pygame.draw.rect(
-        tela,
-        AzulMeiaNoite,
-        (90, 55, 620, 490),
-        border_radius=10
-    )
-
-    pygame.draw.rect(
-        tela,
-        Dourado,
-        (90, 55, 620, 490),
-        3,
-        border_radius=10
-    )
-
-    desenhar_texto(
-        "LOJA",
-        120,
-        75,
-        Dourado,
-        fonte_grande
-    )
-
-    desenhar_texto(
-        f"Moedas: {jogador.moedas}",
-        120,
-        115
-    )
-
-    for indice, (item_id, preco) in enumerate(itens_loja):
+    painel = pygame.Rect(90, 55, 620, 490)
+    pygame.draw.rect(tela, AzulMeiaNoite, painel, border_radius=10)
+    pygame.draw.rect(tela, Dourado, painel, 3, border_radius=10)
+    desenhar_texto("LOJA", 120, 75, Dourado, fonte_grande)
+    desenhar_texto(f"Moedas: {jogador.moedas}", 120, 115)
+    desenhar_texto("↑ / ↓: navegar | ENTER ou Z: comprar", 120, 135, CinzaClaro)
+    area_lista = pygame.Rect(115, 165, 570, 290)
+    tela.set_clip(area_lista)
+    itens_visiveis = 8
+    for indice in range(loja_scroll, min(len(itens_loja), loja_scroll + itens_visiveis)):
+        item_id, preco = itens_loja[indice]
         item = catalogo.obter(item_id)
-
         if item is None:
             continue
-
-        cor_texto = Branco
-
-        if indice == loja_cursor:
-            cor_texto = Dourado
-
-        prefixo = "> " if indice == loja_cursor else "  "
-
-        desenhar_texto(
-            f"{prefixo}{item.nome} - {preco} moedas",
-            130,
-            155 + indice * 35,
-            cor_texto
-        )
-
-    desenhar_texto(
-        "ENTER ou Z: comprar | ESC: fechar",
-        120,
-        500,
-        CinzaClaro
-    )
+        y = 172 + (indice - loja_scroll) * 35
+        selecionada = indice == loja_cursor
+        cor_texto = Dourado if selecionada else Branco
+        prefixo = "> " if selecionada else "  "
+        desenhar_texto(f"{prefixo}{item.nome} - {preco} moedas", 130, y, cor_texto)
+    tela.set_clip(None)
+    if len(itens_loja) > itens_visiveis:
+        pygame.draw.rect(tela, CinzaArdósiaEscuro, (670, 170, 7, 280), border_radius=4)
+        altura_indicador = max(28, int(280 * itens_visiveis / len(itens_loja)))
+        max_scroll = max(1, len(itens_loja) - itens_visiveis)
+        y_indicador = 170 + int((280 - altura_indicador) * loja_scroll / max_scroll)
+        pygame.draw.rect(tela, Dourado, (670, y_indicador, 7, altura_indicador), border_radius=4)
+    desenhar_texto("ESC: fechar", 120, 500, CinzaClaro)
 
 
 def comprar_item():
@@ -648,8 +607,16 @@ while rodando:
 
             if batalha.terminada:
                 if batalha.vitoria:
-                    # A batalha já concede XP e moedas.
-                    batalha.inimigo.derrotado = True
+                    gerenciador_inimigos.registrar_derrota(batalha.inimigo)
+
+                elif batalha.resultado == "fuga":
+                    dx = jogador.x - batalha.inimigo.x
+                    dy = jogador.y - batalha.inimigo.y
+                    distancia = max(1.0, (dx * dx + dy * dy) ** 0.5)
+                    jogador.x = max(0, min(mapa_largura - jogador.colisao.width, jogador.x + dx / distancia * 150))
+                    jogador.y = max(0, min(mapa_altura - jogador.colisao.height, jogador.y + dy / distancia * 150))
+                    jogador.colisao.topleft = (round(jogador.x), round(jogador.y))
+                    invencibilidade_fuga = 5.0
 
                 elif batalha.derrota:
                     jogador.hp = jogador.hpmaximo
@@ -689,17 +656,17 @@ while rodando:
                     pygame.K_UP,
                     pygame.K_w
                 ):
-                    loja_cursor = (
-                        loja_cursor - 1
-                    ) % len(itens_loja)
+                    loja_cursor = max(0, loja_cursor - 1)
+                    if loja_cursor < loja_scroll:
+                        loja_scroll = loja_cursor
 
                 elif evento.key in (
                     pygame.K_DOWN,
                     pygame.K_s
                 ):
-                    loja_cursor = (
-                        loja_cursor + 1
-                    ) % len(itens_loja)
+                    loja_cursor = min(len(itens_loja) - 1, loja_cursor + 1)
+                    if loja_cursor >= loja_scroll + 8:
+                        loja_scroll = loja_cursor - 7
 
                 elif evento.key in (
                     pygame.K_RETURN,
@@ -802,7 +769,16 @@ while rodando:
 
         if batalha.terminada:
             if batalha.vitoria:
-                batalha.inimigo.derrotado = True
+                gerenciador_inimigos.registrar_derrota(batalha.inimigo)
+
+            elif batalha.resultado == "fuga":
+                dx = jogador.x - batalha.inimigo.x
+                dy = jogador.y - batalha.inimigo.y
+                distancia = max(1.0, (dx * dx + dy * dy) ** 0.5)
+                jogador.x = max(0, min(mapa_largura - jogador.colisao.width, jogador.x + dx / distancia * 150))
+                jogador.y = max(0, min(mapa_altura - jogador.colisao.height, jogador.y + dy / distancia * 150))
+                jogador.colisao.topleft = (round(jogador.x), round(jogador.y))
+                invencibilidade_fuga = 5.0
 
             elif batalha.derrota:
                 jogador.hp = jogador.hpmaximo
@@ -820,6 +796,9 @@ while rodando:
     # ATUALIZAÇÃO DO MUNDO
     # =====================================================
 
+    if batalha is None and invencibilidade_fuga > 0:
+        invencibilidade_fuga = max(0.0, invencibilidade_fuga - dt)
+
     if (
         rodando
         and batalha is None
@@ -828,6 +807,8 @@ while rodando:
         and not atributos_abertos
         and npc_dialogo_atual is None
     ):
+        gerenciador_inimigos.atualizar(jogador, objetos_colisao, npcs)
+        inimigos = gerenciador_inimigos.inimigos
         retangulos_inimigos = [
             inimigo.colisao
             for inimigo in inimigos
@@ -883,7 +864,8 @@ while rodando:
 
         for inimigo in inimigos:
             if (
-                not getattr(inimigo, "derrotado", False)
+                invencibilidade_fuga <= 0
+                and not getattr(inimigo, "derrotado", False)
                 and jogador.colisao.colliderect(
                     inimigo.colisao
                 )
